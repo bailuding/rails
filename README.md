@@ -24,12 +24,15 @@ pip3 install torch torchvision torchaudio
 pip3 install fbgemm-gpu --index-url https://download.pytorch.org/whl/cu121/
 ```
 
-Download data:
+We've also included requirements.txt that can be used alternatively.
+
+### (Optional) Download and preprocess data:
+This step is optional as we've included preprocessed data under tmp/.
 ```
 mkdir -p tmp/ && python3 preprocess_public_data.py
 ```
 
-Run evaluation:
+### Run evaluation
 ```
-python eval_batch.py
+python3 eval_batch.py
 ```

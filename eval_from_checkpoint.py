@@ -20,14 +20,12 @@ Example usage:
 *******************
 ****** ML-1M ******
 *******************
-
 07/11/2024
 Config: configs/ml-1m/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.gin
 Checkpoint: ckpts/ml-1m-l200/HSTU-b8-h2-dqk25-dv25-lsilud0.2-ad0.0_MoL-8x4x64-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu-uids6040d0.5_local_ssl-n128-b128-lr0.001-wu0-wd0.001-2024-06-19_ep75
 CUDA_VISIBLE_DEVICES=1 python3 eval_from_checkpoint.py --eval_batch_size=32 --gin_config_file=configs/ml-1m/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.gin  --top_k_method=MoLBruteForceTopK --inference_from_ckpt=ckpts/ml-1m-l200/HSTU-b8-h2-dqk25-dv25-lsilud0.2-ad0.0_MoL-8x4x64-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu-uids6040d0.5_local_ssl-n128-b128-lr0.001-wu0-wd0.001-2024-06-19_ep75  --master_port=12346
 eval @ epoch 75 (189 iters, 6048 evaluated) in 13.59s: NDCG@1 0.0846, NDCG@5 0.1634, NDCG@10 0.1958, NDCG@50 0.2541, NDCG@100 0.2698, NDCG@200 0.3115, HR@1 0.0846, HR@5 0.2402, HR@10 0.3404, HR@50 0.6040, HR@100 0.7002, HR@200 1.0000, MRR 0.1676, EvalTimeAvgMs 0.65, EvalTimeDevMs 0.01, EvalSample 23
-# rails/:       INFO:root:rank 0: eval @ epoch 75 (189 iters, 6048 evaluated) in 14.05s: NDCG@1 0.0844, NDCG@5 0.1628, NDCG@10 0.1952, NDCG@50 0.2537, NDCG@100 0.2694, NDCG@200 0.3127, HR@1 0.0844, HR@5 0.2394, HR@10 0.3396, HR@50 0.6036, HR@100 0.7000, HR@200 1.0000, MRR 0.1676, EvalTimeAvgMs 0.63, EvalTimeDevMs 0.02, EvalSample 23
-# final         INFO:root:rank 0: eval @ epoch 75 (189 iters, 6048 evaluated) in 13.97s: NDCG@1 0.0844, NDCG@5 0.1628, NDCG@10 0.1952, NDCG@50 0.2537, NDCG@100 0.2694, NDCG@200 0.3127, HR@1 0.0844, HR@5 0.2394, HR@10 0.3396, HR@50 0.6036, HR@100 0.7000, HR@200 1.0000, MRR 0.1676, EvalTimeAvgMs 0.64, EvalTimeDevMs 0.03, EvalSample 23
+# rails/ 0722: eval @ epoch 75 (189 iters, 6048 evaluated) in 19.15s: NDCG@1 0.0844, NDCG@5 0.1628, NDCG@10 0.1952, NDCG@50 0.2537, NDCG@100 0.2694, NDCG@200 0.3127, HR@1 0.0844, HR@5 0.2394, HR@10 0.3396, HR@50 0.6036, HR@100 0.7000, HR@200 1.0000, MRR 0.1676, EvalTimeAvgMs 0.61, EvalTimeDevMs 0.01, EvalSample 23
 
 ********************
 ****** ML-20M ******
@@ -37,20 +35,18 @@ Config: configs/ml-20m/hstu-mol-sampled-softmax-n128-8x4x128-rails-final.gin
 Checkpoint: ckpts/ml-20m-l200/HSTU-b16-h8-dqk32-dv32-lsilud0.2-ad0.0_MoL-8x4x128-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.1-x-glu_silu-uids16384d0.8-l20.1_local_ssl-n128-ddp2avg-b64-lr0.001-wu0-wd0-2024-06-19_ep90
 CUDA_VISIBLE_DEVICES=1 python3 eval_from_checkpoint.py --eval_batch_size=32 --gin_config_file=configs/ml-20m/hstu-mol-sampled-softmax-n128-8x4x128-rails-final.gin --top_k_method=MoLBruteForceTopK --inference_from_ckpt=ckpts/ml-20m-l200/HSTU-b16-h8-dqk32-dv32-lsilud0.2-ad0.0_MoL-8x4x128-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.1-x-glu_silu-uids16384d0.8-l20.1_local_ssl-n128-ddp2avg-b64-lr0.001-wu0-wd0-2024-06-19_ep90  --master_port=12346
 eval @ epoch 90 (4328 iters, 138496 evaluated) in 122.70s: NDCG@1 0.1004, NDCG@5 0.1855, NDCG@10 0.2178, NDCG@50 0.2748, NDCG@100 0.2914, NDCG@200 0.3295, HR@1 0.1004, HR@5 0.2670, HR@10 0.3669, HR@50 0.6240, HR@100 0.7257, HR@200 1.0000, MRR 0.1877, EvalTimeAvgMs 3.08, EvalTimeDevMs 0.02, EvalSample 412
-# rails/:       INFO:root:rank 0: eval @ epoch 90 (4328 iters, 138496 evaluated) in 128.08s: NDCG@1 0.0994, NDCG@5 0.1843, NDCG@10 0.2165, NDCG@50 0.2736, NDCG@100 0.2903, NDCG@200 0.3300, HR@1 0.0994, HR@5 0.2653, HR@10 0.3652, HR@50 0.6228, HR@100 0.7252, HR@200 1.0000, MRR 0.1870, EvalTimeAvgMs 3.07, EvalTimeDevMs 0.02, EvalSample 412
-# final         INFO:root:rank 0: eval @ epoch 90 (4328 iters, 138496 evaluated) in 127.55s: NDCG@1 0.0994, NDCG@5 0.1843, NDCG@10 0.2165, NDCG@50 0.2736, NDCG@100 0.2903, NDCG@200 0.3300, HR@1 0.0994, HR@5 0.2653, HR@10 0.3652, HR@50 0.6228, HR@100 0.7252, HR@200 1.0000, MRR 0.1870, EvalTimeAvgMs 3.07, EvalTimeDevMs 0.02, EvalSample 412
+# rails/ 0722: eval @ epoch 90 (4328 iters, 138496 evaluated) in 130.27s: NDCG@1 0.0994, NDCG@5 0.1843, NDCG@10 0.2165, NDCG@50 0.2736, NDCG@100 0.2903, NDCG@200 0.3300, HR@1 0.0994, HR@5 0.2653, HR@10 0.3652, HR@50 0.6228, HR@100 0.7252, HR@200 1.0000, MRR 0.1870, EvalTimeAvgMs 3.07, EvalTimeDevMs 0.27, EvalSample 412
 
 **************************
 ****** Amazon Books ******
 **************************
-07/11/2024 UPDATE v2 checkpoint, batch size 32
+07/11/2024
 Config: configs/amzn-books/hstu-mol-sampled-softmax-n512-d64-b16-h8-8x8x32-rails-final.gin
 Checkpoint: ckpts/amzn-books-l50/HSTU-b16-h8-dqk8-dv8-lsilud0.5-ad0.0_MoL-8x8x32-t0.05-d0.2-l2-q512d0.0geglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu_local_ssl-n512-ddp2avg-b64-lr0.001-wu0-wd0-2024-06-20-fe5_ep115_v2
 
-CUDA_VISIBLE_DEVICES=1 python3 eval_from_checkpoint.py --limit_eval_to_first_n=8192 --eval_batch_size=32 --gin_config_file=configs/amzn-books/hstu-mol-sampled-softmax-n512-8x8x32-rails-final.gin --top_k_method=MoLBruteForceTopK  --inference_from_ckpt=ckpts/amzn-books-l50/HSTU-b16-h8-dqk8-dv8-lsilud0.5-ad0.0_MoL-8x8x32-t0.05-d0.2-l2-q512d0.0geglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu_local_ssl-n512-ddp2avg-b64-lr0.001-wu0-wd0-2024-06-20-fe5_ep115_v2 --master_port=12346
+CUDA_VISIBLE_DEVICES=1 python3 eval_from_checkpoint.py --limit_eval_to_first_n=8192 --eval_batch_size=32 --gin_config_file=configs/amzn-books/hstu-mol-sampled-softmax-n512-8x8x32-rails-final.gin --top_k_method=MoLBruteForceTopK  --inference_from_ckpt=ckpts/amzn-books-l50/HSTU-b16-h8-dqk8-dv8-lsilud0.5-ad0.0_MoL-8x8x32-t0.05-d0.2-l2-q512d0.0geglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu_local_ssl-n512-ddp2avg-b64-lr0.001-wu0-wd0-2024-06-20-fe5_ep115 --master_port=12346
 eval @ epoch 115 (256 iters, 8192 evaluated) in 155.65s: NDCG@1 0.0171, NDCG@5 0.0310, NDCG@10 0.0377, NDCG@50 0.0525, NDCG@100 0.0591, NDCG@200 0.1733, HR@1 0.0171, HR@5 0.0447, HR@10 0.0653, HR@50 0.1328, HR@100 0.1737, HR@200 1.0000, MRR 0.0385, EvalTimeAvgMs 148.94, EvalTimeDevMs 0.53, EvalSample 28
-# rails/:      eval @ epoch 115 (256 iters, 8192 evaluated) in 155.68s: NDCG@1 0.0165, NDCG@5 0.0290, NDCG@10 0.0354, NDCG@50 0.0506, NDCG@100 0.0572, NDCG@200 0.1767, HR@1 0.0165, HR@5 0.0413, HR@10 0.0612, HR@50 0.1313, HR@100 0.1720, HR@200 1.0000, MRR 0.0382, EvalTimeAvgMs 148.89, EvalTimeDevMs 0.47, EvalSample 28
-# final        eval @ epoch 115 (256 iters, 8192 evaluated) in 155.77s: NDCG@1 0.0165, NDCG@5 0.0290, NDCG@10 0.0354, NDCG@50 0.0506, NDCG@100 0.0572, NDCG@200 0.1767, HR@1 0.0165, HR@5 0.0413, HR@10 0.0612, HR@50 0.1313, HR@100 0.1720, HR@200 1.0000, MRR 0.0382, EvalTimeAvgMs 148.71, EvalTimeDevMs 0.50, EvalSample 28
+# rails/ 0722: eval @ epoch 115 (256 iters, 8192 evaluated) in 162.16s: NDCG@1 0.0149, NDCG@5 0.0304, NDCG@10 0.0362, NDCG@50 0.0523, NDCG@100 0.0585, NDCG@200 0.1774, HR@1 0.0149, HR@5 0.0457, HR@10 0.0637, HR@50 0.1376, HR@100 0.1758, HR@200 1.0000, MRR 0.0385, EvalTimeAvgMs 148.90, EvalTimeDevMs 0.48, EvalSample 28
 """
 
 from dataclasses import dataclass
@@ -79,7 +75,6 @@ import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.tensorboard import SummaryWriter
 
-# import apex
 from data.reco_dataset import get_reco_dataset
 from data.eval import _avg, get_eval_state, eval_metrics_v2_from_tensors
 from indexing.utils_rails import get_top_k_module
@@ -133,7 +128,6 @@ def train_fn(
     limit_eval_to_first_n: int,
     dataset_name: str = "ml-20m",
     max_sequence_length: int = 200,
-    positional_sampling_ratio: float = 1.0,
     local_batch_size: int = 128,
     eval_batch_size: int = 128,
     eval_user_max_batch_size: Optional[int] = None,
@@ -143,40 +137,30 @@ def train_fn(
     linear_hidden_dim: int = 256,
     attention_dim: int = 256,
     user_embedding_norm: str = "l2_norm",
-    sampling_strategy: str = "in-batch",
-    loss_module: str = "SampledSoftmaxLoss",
-    num_negatives: int = 1,
-    encoder_activation_checkpoint: bool = False,
-    loss_activation_checkpoint: bool = False,
-    item_l2_norm: bool = False,
-    temperature: float = 0.05,
-    num_epochs: int = 101,
-    num_blocks: int = 8,
-    num_heads: int = 1,
     learning_rate: float = 1e-3,
-    num_warmup_steps: int = 0,  #8192
-    weight_decay: float = 1e-3,
-    eval_interval: int = 100,
-    full_eval_every_n: int = 1,
+    weight_decay: float = 0.0,
+    num_warmup_steps: int = 0,
+    sampling_strategy: str = "in-batch",
+    num_negatives: int = 1,
+    temperature: float = 1.0,
+    num_epochs: int = 101,
+    eval_interval: int = 1000,
+    full_eval_every_n: int = 0,
+    loss_module: str = "",
+    item_l2_norm: bool = False,
     save_ckpt_every_n: int = 1000,
     partial_eval_num_iters: int = 32,
     embedding_module_type: str = "local",
     item_embedding_dim: int = 240,
-    rating_embedding_dim: int = 16,
-    item_feature_embedding_dim: int = 16,
     interaction_module_type: str = "",
-    # HSTU
     gr_output_length: int = 10,
     mol_bf16_training: bool = False,
     l2_norm_eps: float = 1e-6,
-    debug_tensors_num_epochs: int = 0,
-    debug_tensors_num_users: int = 1,
     enable_tf32: bool = False,
     opt_enable_apex: bool = False,
 ) -> None:
     random.seed(42)
     torch.manual_seed(42)
-    torch.backends.cudnn.deterministic = True
 
     main_module_bf16 = True
     logging.info("Enabling eval in bf16 to speed up.")
@@ -190,7 +174,7 @@ def train_fn(
         dataset_name=dataset_name,
         max_sequence_length=max_sequence_length,
         chronological=True,
-        positional_sampling_ratio=positional_sampling_ratio,
+        positional_sampling_ratio=1.0,
     )
 
     test_data_sampler, test_data_loader = create_data_loader(
