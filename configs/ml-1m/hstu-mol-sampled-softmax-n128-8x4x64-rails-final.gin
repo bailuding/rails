@@ -1,0 +1,73 @@
+# Run this as:
+# mkdir -p logs/ml-1m-l200/
+# CUDA_VISIBLE_DEVICES=0 python3 train.py --gin_config_file=configs/ml-1m/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.gin --master_port=12346 2>&1 | tee logs/ml-1m-l200/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.log
+#
+# Metrics (verified as of 06/19/2024)
+#      HSTU final           | 0.0815        0.3237        0.5886        0.7815        0.1856        0.2445        0.2738        0.1589
+#      HSTU +MoL RAIL final | 0.0875 (7.5%) 0.3412 (5.4%) 0.6013 (2.2%) 0.7877 (0.8%) 0.1979 (6.7%) 0.2556 (4.6%) 0.2840 (3.8%) 0.1692 (6.5%)
+
+train_fn.dataset_name = "ml-1m"
+train_fn.max_sequence_length = 200
+train_fn.local_batch_size = 128
+
+train_fn.main_module = "HSTU"
+train_fn.dropout_rate = 0.2
+train_fn.user_embedding_norm = "layer_norm"
+train_fn.num_epochs = 101
+train_fn.item_embedding_dim = 50
+
+hstu_encoder.num_blocks = 8
+hstu_encoder.num_heads = 2
+hstu_encoder.dqk = 25
+hstu_encoder.dv = 25
+hstu_encoder.linear_dropout_rate = 0.2
+
+train_fn.learning_rate = 1e-3
+train_fn.weight_decay = 1e-3
+train_fn.num_warmup_steps = 0
+
+# train_fn.save_ckpt_every_n = 5
+
+train_fn.interaction_module_type = "MoL"
+train_fn.top_k_method = "MoLBruteForceTopK"
+
+create_mol_interaction_module.query_dot_product_groups = 8
+create_mol_interaction_module.item_dot_product_groups = 4
+create_mol_interaction_module.dot_product_dimension = 64
+create_mol_interaction_module.dot_product_l2_norm = True
+
+# MoL query-side configuration
+create_mol_interaction_module.query_use_identity_fn = False
+create_mol_interaction_module.query_hidden_dim = 512
+create_mol_interaction_module.query_dropout_rate = 0.0
+create_mol_interaction_module.query_nonlinearity = "swiglu"
+
+create_mol_interaction_module.uid_embedding_hash_sizes = [6040]
+create_mol_interaction_module.uid_dropout_rate = 0.5
+
+# MoL item-side configuration
+create_mol_interaction_module.item_use_identity_fn = False
+create_mol_interaction_module.item_hidden_dim = -1
+create_mol_interaction_module.item_dropout_rate = 0.1
+create_mol_interaction_module.item_nonlinearity = "swiglu"
+
+# MoL gating configuration
+create_mol_interaction_module.temperature = 0.05
+create_mol_interaction_module.softmax_dropout_rate = 0.2
+create_mol_interaction_module.gating_qi_hidden_dim = 128
+create_mol_interaction_module.gating_query_hidden_dim = 128
+create_mol_interaction_module.gating_item_hidden_dim = 128
+create_mol_interaction_module.gating_combination_type = "glu_silu"
+
+train_fn.loss_module = "SampledSoftmaxLoss"
+train_fn.num_negatives = 128
+
+train_fn.sampling_strategy = "local"
+train_fn.temperature = 1.0
+train_fn.item_l2_norm = False
+train_fn.l2_norm_eps = 1e-6
+
+train_fn.enable_tf32 = True
+
+create_data_loader.prefetch_factor = 128
+create_data_loader.num_workers = 8
