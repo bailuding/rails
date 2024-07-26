@@ -78,7 +78,7 @@ You should be able to reproduce the following results (verified as of 07/22/2024
 
 ## References
 
-The code in this repository is intended for reproducing results reported in `Efficient Retrieval with Learned Similarities`. If you find the work or the code useful, please cite
+The code in this repository is intended for reproducing results reported in `Efficient Retrieval with Learned Similarities` (http://arxiv.org/abs/2407.15462). If you find the work or the code useful, please cite
 ```
 @misc{ding2024retrievallearnedsimilarities,
       title={Efficient Retrieval with Learned Similarities}, 
