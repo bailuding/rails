@@ -43,7 +43,7 @@ python3 eval_batch.py
 
 You can use `configs/ml-1m/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.gin`, `configs/ml-1m/hstu-sampled-softmax-n128-rails-final.gin`, `configs/ml-20m/hstu-mol-sampled-softmax-n128-8x4x128-rails-final.gin`, `configs/ml-20m/hstu-sampled-softmax-n128-rails-final.gin`, `rails/configs/amzn-books/hstu-mol-sampled-softmax-n512-8x8x32-rails-final.gin`, and `configs/amzn-books/hstu-sampled-softmax-n512-rails-final.gin` to reproduce experiments reported in this paper. We've also included pre-trained checkpoints in `ckpts/` to make it easier to reproduce results.
 
-You should be able to reproduce the following results (verified as of 07/22/2024; non-MoL rows are replicated from `facebookresearch/generative-recommenders`[https://github.com/facebookresearch/generative-recommenders] to faciliate references):
+You should be able to reproduce the following results (verified as of 07/22/2024; non-MoL rows are replicated from results shown in [generative-recommenders github](https://github.com/facebookresearch/generative-recommenders) to faciliate references):
 
 **MovieLens-1M (ML-1M)**:
 
