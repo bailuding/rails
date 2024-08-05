@@ -16,7 +16,7 @@
 
 import abc
 from collections import OrderedDict
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -502,7 +502,8 @@ class SampledSoftmaxLoss(AutoregressiveLoss):
         supervision_embeddings: torch.Tensor,
         supervision_weights: torch.Tensor,
         negatives_sampler: NegativesSampler,
-    ) -> torch.Tensor:
+        aux_payloads: Dict[str, torch.Tensor],
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
         assert output_embeddings.size() == supervision_embeddings.size()
         assert supervision_ids.size() == supervision_embeddings.size()[:-1]
         assert supervision_ids.size() == supervision_weights.size()
@@ -514,20 +515,20 @@ class SampledSoftmaxLoss(AutoregressiveLoss):
         positive_embeddings = negatives_sampler.normalize_embeddings(
             supervision_embeddings
         )
-        positive_logits = (
-            self._model.interaction(
-                input_embeddings=output_embeddings,  # [B, D] = [N', D]
-                target_ids=supervision_ids.unsqueeze(1),  # [N', 1]
-                target_embeddings=positive_embeddings.unsqueeze(
-                    1
-                ),  # [N', D] -> [N', 1, D]
-            )
-            / self._softmax_temperature
-        )  # [0]
-        sampled_negatives_logits = self._model.interaction(
+        positive_logits, aux_losses = self._model.interaction(
+            input_embeddings=output_embeddings,  # [B, D] = [N', D]
+            target_ids=supervision_ids.unsqueeze(1),  # [N', 1]
+            target_embeddings=positive_embeddings.unsqueeze(
+                1
+            ),  # [N', D] -> [N', 1, D]
+            aux_payloads=aux_payloads,
+        )
+        positive_logits = positive_logits / self._softmax_temperature # [0]
+        sampled_negatives_logits, _ = self._model.interaction(
             input_embeddings=output_embeddings,  # [N', D]
             target_ids=sampled_ids,  # [N', R]
             target_embeddings=sampled_negative_embeddings,  # [N', R, D]
+            aux_payloads=aux_payloads,
         )  # [N', R]  # [0]
         sampled_negatives_logits = torch.where(
             supervision_ids.unsqueeze(1) == sampled_ids,  # [N', R]
@@ -537,7 +538,7 @@ class SampledSoftmaxLoss(AutoregressiveLoss):
         jagged_loss = -F.log_softmax(
             torch.cat([positive_logits, sampled_negatives_logits], dim=1), dim=1
         )[:, 0]
-        return (jagged_loss * supervision_weights).sum() / supervision_weights.sum()
+        return (jagged_loss * supervision_weights).sum() / supervision_weights.sum(), aux_losses
 
     def forward(
         self,
@@ -547,7 +548,8 @@ class SampledSoftmaxLoss(AutoregressiveLoss):
         supervision_embeddings: torch.Tensor,
         supervision_weights: torch.Tensor,
         negatives_sampler: NegativesSampler,
-    ) -> torch.Tensor:
+        aux_payloads: Dict[str, torch.Tensor],
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
         """
         Args:
             lengths: [B] x int32 representing number of non-zero elements per row.
@@ -573,6 +575,15 @@ class SampledSoftmaxLoss(AutoregressiveLoss):
             .squeeze(1)
             .long()
         )
+        if "user_ids" in aux_payloads:
+            # expand to jagged.
+            max_length: int = int(lengths.max())
+            aux_payloads["user_ids"] = torch.ops.fbgemm.dense_to_jagged(
+                aux_payloads["user_ids"].unsqueeze(1).expand(
+                    -1, max_length
+                ).unsqueeze(2),  # (B, max_length, 1)
+                [jagged_id_offsets]
+            )[0].squeeze(1)
 
         args = OrderedDict(
             [
@@ -599,6 +610,7 @@ class SampledSoftmaxLoss(AutoregressiveLoss):
                     )[0].squeeze(1),
                 ),
                 ("negatives_sampler", negatives_sampler),
+                ("aux_payloads", aux_payloads),
             ]
         )
         if self._activation_checkpoint:
@@ -623,4 +635,5 @@ class SampledSoftmaxLoss(AutoregressiveLoss):
                     [jagged_id_offsets],
                 )[0].squeeze(1),
                 negatives_sampler=negatives_sampler,
+                aux_payloads=aux_payloads,
             )

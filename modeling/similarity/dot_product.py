@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# forked from facebookresearch/generative-recommenders @ 6c61e25 with updates.
+
 from typing import Dict, Callable, Optional, Tuple
 
 import torch
@@ -34,8 +36,9 @@ class DotProductSimilarity(NDPModule):
         item_embeddings: torch.Tensor,
         item_sideinfo: Optional[torch.Tensor],
         item_ids: torch.Tensor,
+        aux_payloads: Dict[str, torch.Tensor],
         precomputed_logits: Optional[torch.Tensor] = None,
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
         """
         Args:
             input_embeddings: (B, D,) or (B * r, D) x float.
@@ -52,8 +55,8 @@ class DotProductSimilarity(NDPModule):
         elif input_embeddings.size(0) != item_embeddings.size(0):
             # (B * r, D) x (B, X, D).
             B, X, D = item_embeddings.size()
-            return torch.bmm(input_embeddings.view(B, -1, D), item_embeddings.permute(0, 2, 1)).view(-1, X)
+            return torch.bmm(input_embeddings.view(B, -1, D), item_embeddings.permute(0, 2, 1)).view(-1, X), {}
         else:
             # assert input_embeddings.size(0) == item_embeddings.size(0)
             # [B, X, D] x ([B, D] -> [B, D, 1]) => [B, X, 1] -> [B, X]
-            return torch.bmm(item_embeddings, input_embeddings.unsqueeze(2)).squeeze(2)
+            return torch.bmm(item_embeddings, input_embeddings.unsqueeze(2)).squeeze(2), {}

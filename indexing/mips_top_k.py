@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# forked from facebookresearch/generative-recommenders @ 6c61e25
+# forked from facebookresearch/generative-recommenders @ 6c61e25 with updates
 
-from typing import Tuple
+from typing import Dict, Tuple
 
 import torch
 
@@ -57,6 +57,7 @@ class MIPSBruteForceTopK(MIPSTopKModule):
         self,
         query_embeddings: torch.Tensor,
         k: int,
+        aux_payloads: Dict[str, torch.Tensor],
         sorted: bool = True,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """

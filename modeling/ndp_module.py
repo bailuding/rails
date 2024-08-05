@@ -25,6 +25,7 @@ class NDPModule(torch.nn.Module):
         input_embeddings: torch.Tensor,
         item_embeddings: torch.Tensor,
         item_sideinfo: Optional[torch.Tensor],
+        aux_payloads: Dict[str, torch.Tensor],
         precomputed_logits: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """

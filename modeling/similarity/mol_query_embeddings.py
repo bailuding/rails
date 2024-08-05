@@ -141,6 +141,7 @@ class RecoMoLQueryEmbeddingsFn(MoLQueryEmbeddingsFn):
                     else:
                         uid_embeddings = F.dropout(uid_embeddings, p=self._uid_dropout_rate, training=self.training)
                 all_uid_embeddings.append(uid_embeddings.unsqueeze(1))
+            # print(f"split_query_embeddings.size(): {split_query_embeddings.size()}; all_uid_embeddings.size(): {[x.size() for x in all_uid_embeddings]}")
             split_query_embeddings = torch.cat([split_query_embeddings] + all_uid_embeddings, dim=1)
 
         if self._dot_product_l2_norm:

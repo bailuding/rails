@@ -149,6 +149,7 @@ class CandidateIndex(object):
         invalid_ids: Optional[torch.Tensor],
         r: int = 1,
         return_embeddings: bool = False,
+        truncate_k_prime_to: Optional[int] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """
         Gets top-k outputs specified by `policy_fn', while filtering out
@@ -172,7 +173,9 @@ class CandidateIndex(object):
         if invalid_ids is not None:
             max_num_invalid_ids = invalid_ids.size(1)
 
-        k_prime = min(200, min(k + max_num_invalid_ids, self.num_objects))
+        k_prime = min(k + max_num_invalid_ids, self.num_objects)
+        if truncate_k_prime_to is not None:
+            k_prime = min(k_prime, truncate_k_prime_to)
         top_k_prime_scores, top_k_prime_ids = top_k_module(query_embeddings=query_embeddings, k=k_prime, aux_payloads=aux_payloads)
 
         # Masks out invalid items rowwise.

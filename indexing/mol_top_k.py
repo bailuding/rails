@@ -17,7 +17,6 @@
 from typing import Dict, Tuple
 
 import torch
-import faiss
 
 from indexing.candidate_index import TopKModule
 from modeling.similarity.mol import MoLSimilarity
@@ -141,6 +140,7 @@ class MoLNaiveTopK(MoLTopKModule):
         self._mol_item_embeddings_t: torch.Tensor = self._mol_item_embeddings.reshape(-1, D_prime).transpose(0, 1)  # (D', K_I * N)
         self._use_faiss = use_faiss
         if use_faiss:
+            import faiss
             self._gpu_resources = faiss.StandardGpuResources()
             self._gpu_indexes = []
             nlist = 100

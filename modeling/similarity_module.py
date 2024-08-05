@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import abc
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import torch
 
@@ -41,6 +41,7 @@ class InteractionModule(torch.nn.Module):
         self,
         input_embeddings: torch.Tensor,  # [B, D]
         target_ids: torch.Tensor,  # [1, X] or [B, X]
+        aux_payloads: Dict[str, torch.Tensor],
         target_embeddings: Optional[torch.Tensor] = None,   # [1, X, D'] or [B, X, D']
     ) -> torch.Tensor:
         pass
@@ -65,6 +66,7 @@ class GeneralizedInteractionModule(InteractionModule):
         self,
         input_embeddings: torch.Tensor,
         target_ids: torch.Tensor,
+        aux_payloads: Dict[str, torch.Tensor],
         target_embeddings: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         torch._assert(len(input_embeddings.size()) == 2, "len(input_embeddings.size()) must be 2")
@@ -79,4 +81,5 @@ class GeneralizedInteractionModule(InteractionModule):
             item_sideinfo=self.get_item_sideinfo(item_ids=target_ids),  # [1/B, X, self._item_sideinfo_dim]
             item_ids=target_ids,
             precomputed_logits=None,
+            aux_payloads=aux_payloads,
         )

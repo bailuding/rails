@@ -25,6 +25,7 @@ import random
 
 import statistics
 import torch
+import torch.distributed as dist
 import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 
@@ -39,6 +40,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 @dataclass
 class EvalState:
+    all_item_ids: Set[int]
     candidate_index: CandidateIndex
     top_k_module: TopKModule
 
@@ -160,13 +162,6 @@ def eval_classification_metrics_from_tensors(
     return output
 
 
-@dataclass
-class EvalState:
-    all_item_ids: Set[int]
-    candidate_index: CandidateIndex
-    top_k_module: TopKModule
-
-
 @torch.inference_mode
 def get_eval_state(
     model: NDPModule,
@@ -207,6 +202,7 @@ def eval_metrics_v2_from_tensors(
     filter_invalid_ids: bool = True,
     user_max_batch_size: Optional[int] = None,
     dtype: Optional[torch.dtype] = None,
+    include_eval_time: bool = False,
 ) -> Dict[str, torch.Tensor]:
     """
     Args:
@@ -218,6 +214,7 @@ def eval_metrics_v2_from_tensors(
         item_max_batch_size: int. maximum number of items (*not* users - i.e., M/R
             not B) to eval per batch.
         filter_invalid_ids: bool. If true, filters seen ids by default.
+        include_eval_time: include_eval_time
     Returns:
         keyed metric -> list of values for each example.
     """
@@ -240,7 +237,8 @@ def eval_metrics_v2_from_tensors(
     if dtype is not None:
         shared_input_embeddings = shared_input_embeddings.to(dtype)
 
-    MAX_K = 120
+    MAX_K = 120 if include_eval_time else 2500
+    truncate_k_prime_to = 200 if include_eval_time else None
     k = min(MAX_K, eval_state.candidate_index.ids.size(1))
     user_max_batch_size = user_max_batch_size or shared_input_embeddings.size(0)
     num_batches = (
@@ -250,38 +248,38 @@ def eval_metrics_v2_from_tensors(
     eval_top_k_prs_all = []
     eval_time_all = []
     for mb in range(num_batches):
-        # Eval the time for 10% of the batches
-        dice = random.random()
-        if dice < 0.1:
-            warm_up_runs = 3 # warm up runs
-            max_runs = 20 # time for 20 runs
+        # Eval runtime for 10% of the batches
+        if include_eval_time and (random.random()) < 0.1:
+            warm_up_runs = 3  # warm up runs
+            max_runs = 20  # time for 20 runs
             for run in range(warm_up_runs):
                 eval_top_k_ids, eval_top_k_prs, _ = eval_state.candidate_index.get_top_k_outputs(
-                query_embeddings=shared_input_embeddings[mb * user_max_batch_size: (mb + 1) * user_max_batch_size, ...],
-                top_k_module=eval_state.top_k_module,
-                k=k,
-                aux_payloads=seq_features.past_payloads,
-                invalid_ids=seq_features.past_ids[
-                    mb * user_max_batch_size: (mb + 1) * user_max_batch_size, :
-                ] if filter_invalid_ids else None,
-                return_embeddings=False,
+                    query_embeddings=shared_input_embeddings[mb * user_max_batch_size: (mb + 1) * user_max_batch_size, ...],
+                    top_k_module=eval_state.top_k_module,
+                    k=k,
+                    aux_payloads=seq_features.past_payloads,
+                    invalid_ids=seq_features.past_ids[
+                        mb * user_max_batch_size: (mb + 1) * user_max_batch_size, :
+                    ] if filter_invalid_ids else None,
+                    return_embeddings=False,
+                    truncate_k_prime_to=truncate_k_prime_to,
                 )
             start_time = time.time()
             # Time for 20 runs
             for run in range(max_runs):
                 eval_top_k_ids, eval_top_k_prs, _ = eval_state.candidate_index.get_top_k_outputs(
-                query_embeddings=shared_input_embeddings[mb * user_max_batch_size: (mb + 1) * user_max_batch_size, ...],
-                top_k_module=eval_state.top_k_module,
-                k=k,
-                aux_payloads=seq_features.past_payloads,
-                invalid_ids=seq_features.past_ids[
-                    mb * user_max_batch_size: (mb + 1) * user_max_batch_size, :
-                ] if filter_invalid_ids else None,
-                return_embeddings=False,
+                    query_embeddings=shared_input_embeddings[mb * user_max_batch_size: (mb + 1) * user_max_batch_size, ...],
+                    top_k_module=eval_state.top_k_module,
+                    k=k,
+                    aux_payloads=seq_features.past_payloads,
+                    invalid_ids=seq_features.past_ids[
+                        mb * user_max_batch_size: (mb + 1) * user_max_batch_size, :
+                    ] if filter_invalid_ids else None,
+                    return_embeddings=False,
+                    truncate_k_prime_to=truncate_k_prime_to,
                 )
             eval_time = (time.time() - start_time) / max_runs
-            eval_time_all.append(eval_time)
-            
+            eval_time_all.append(eval_time)            
             
         eval_top_k_ids, eval_top_k_prs, _ = eval_state.candidate_index.get_top_k_outputs(
             query_embeddings=shared_input_embeddings[mb * user_max_batch_size: (mb + 1) * user_max_batch_size, ...],
@@ -292,6 +290,7 @@ def eval_metrics_v2_from_tensors(
                 mb * user_max_batch_size: (mb + 1) * user_max_batch_size, :
             ] if filter_invalid_ids else None,
             return_embeddings=False,
+            truncate_k_prime_to=truncate_k_prime_to,
         )
         eval_top_k_ids_all.append(eval_top_k_ids)
         eval_top_k_prs_all.append(eval_top_k_prs)
@@ -353,8 +352,10 @@ def eval_metrics_v2_from_tensors(
         "hr@500": (eval_ranks <= 500),
         "hr@1000": (eval_ranks <= 1000),
         "mrr": (1.0 / eval_ranks),
-        "eval_time": eval_time_all,
     }
+    if include_eval_time:
+        output["eval_time"] = eval_time_all
+
     if target_ratings is not None:
         target_ratings = target_ratings.squeeze(1)  # [B]
         output["ndcg@10_>=4"] = torch.where(
@@ -377,32 +378,6 @@ def eval_metrics_v2_from_tensors(
     return output
 
 
-def eval_recall_metrics_from_tensors(
-    eval_state: EvalState,
-    model: NDPModule,
-    seq_features: SequentialFeatures,
-    include_full_matrices: bool = False,
-    user_max_batch_size: Optional[int] = None,
-    dtype: Optional[torch.dtype] = None,
-) -> Dict[str, List[float]]:
-    target_ids = seq_features.past_ids[:, -1].unsqueeze(1)
-    filtered_past_ids = seq_features.past_ids.detach().clone()
-    filtered_past_ids[:, -1] = torch.zeros_like(target_ids.squeeze(1))
-    return eval_metrics_v2_from_tensors(
-        eval_state=eval_state,
-        model=model,
-        seq_features=SequentialFeatures(
-            past_lengths=seq_features.past_lengths - 1,
-            past_ids=filtered_past_ids,
-            past_embeddings=seq_features.past_embeddings,
-            past_payloads=seq_features.past_payloads,
-        ),
-        target_ids=target_ids,
-        user_max_batch_size=user_max_batch_size,
-        dtype=dtype,
-    )
-
-
 def _avg(x: torch.Tensor, world_size: int) -> float:
     _sum_and_numel = torch.tensor([x.sum(), x.numel()], dtype=torch.float32, device=x.device)
     if world_size > 1:
@@ -418,6 +393,10 @@ def add_to_summary_writer(
     world_size: int,
 ) -> None:
     for key, values in metrics.items():
-        avg_value = _avg(values, world_size)
-        if writer is not None:
-            writer.add_scalar(f"{prefix}/{key}", avg_value, batch_id)
+        try:
+            avg_value = _avg(values, world_size)
+            if writer is not None:
+                writer.add_scalar(f"{prefix}/{key}", avg_value, batch_id)
+        except Exception as e:
+            print(f"failed to avg {key}: {e}")
+            raise e

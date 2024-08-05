@@ -308,6 +308,7 @@ def train_fn(
                 eval_state, model.module, seq_features, target_ids=target_ids, target_ratings=target_ratings,
                 user_max_batch_size=eval_user_max_batch_size,
                 include_full_matrices=False,
+                include_eval_time=True,
             )
 
             if eval_dict_all is None:

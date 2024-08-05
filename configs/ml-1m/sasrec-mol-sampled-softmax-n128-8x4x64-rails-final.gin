@@ -13,71 +13,59 @@
 # limitations under the License.
 #
 # Run this as:
-# mkdir -p logs/ml-20m-l200/
-# CUDA_VISIBLE_DEVICES=1 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python3 train.py --gin_config_file=configs/ml-20m/hstu-mol-sampled-softmax-n128-8x4x128-rails-final.gin --master_port=12347 2>&1 | tee logs/ml-20m-l200/hstu-mol-sampled-softmax-n128-8x4x128-rails-final.log
-#                                 | hr@1           hr@10          hr@50          hr@200         ndcg@10        ndcg@50        ndcg@200       mrr           
-#        HSTU (b=16, h=8, dqk=32) | 0.0966         0.3555         0.6147         0.8063         0.2101         0.2675         0.2967         0.1805        
-#     HSTU-large + MoL RAIL final | 0.1014 (5.1%)  0.3661 (3.0%)  0.6234 (1.4%)  0.8116 (0.7%)  0.2181 (3.8%)  0.2753 (2.9%)  0.3039 (2.5%)  0.1876 (4.0%)
+# mkdir -p logs/ml-1m-l200/
+# CUDA_VISIBLE_DEVICES=1 python3 train.py --gin_config_file=configs/ml-1m/sasrec-mol-sampled-softmax-n128-8x4x64-rails-final.gin --master_port=12345 2>&1 | tee logs/ml-1m-l200/sasrec-mol-sampled-softmax-n128-8x4x64-rails-final.log
 
-train_fn.dataset_name = "ml-20m"
+train_fn.dataset_name = "ml-1m"
 train_fn.max_sequence_length = 200
 train_fn.local_batch_size = 128
-train_fn.eval_batch_size = 128
 
-train_fn.main_module = "HSTU"
+train_fn.main_module = "SASRec"
 train_fn.dropout_rate = 0.2
 train_fn.user_embedding_norm = "layer_norm"
 train_fn.num_epochs = 101
-train_fn.item_embedding_dim = 256
+train_fn.item_embedding_dim = 50
 
-hstu_encoder.num_blocks = 16
-hstu_encoder.num_heads = 8
-hstu_encoder.dv = 32
-hstu_encoder.dqk = 32
-hstu_encoder.linear_dropout_rate = 0.2
+sasrec_encoder.num_blocks = 2
+sasrec_encoder.num_heads = 1
+sasrec_encoder.ffn_dropout_rate = 0.2
+sasrec_encoder.ffn_hidden_dim = 50
+sasrec_encoder.ffn_activation_fn = "relu"
 
 train_fn.learning_rate = 1e-3
 train_fn.weight_decay = 0
 train_fn.num_warmup_steps = 0
-
-# train_fn.save_ckpt_every_n = 5
 
 train_fn.interaction_module_type = "MoL"
 train_fn.top_k_method = "MoLBruteForceTopK"
 
 create_mol_interaction_module.query_dot_product_groups = 8
 create_mol_interaction_module.item_dot_product_groups = 4
-create_mol_interaction_module.dot_product_dimension = 128
+create_mol_interaction_module.dot_product_dimension = 64
 create_mol_interaction_module.dot_product_l2_norm = True
 
 # MoL query-side configuration
 create_mol_interaction_module.query_use_identity_fn = False
-create_mol_interaction_module.query_dropout_rate = 0.0
 create_mol_interaction_module.query_hidden_dim = 512
+create_mol_interaction_module.query_dropout_rate = 0.0
 create_mol_interaction_module.query_nonlinearity = "swiglu"
 
-create_mol_interaction_module.uid_embedding_hash_sizes = [16384]
-create_mol_interaction_module.uid_dropout_rate = 0.8
-create_mol_interaction_module.uid_embedding_l2_weight_decay = 1e-1
+create_mol_interaction_module.uid_embedding_hash_sizes = [6040]
+create_mol_interaction_module.uid_dropout_rate = 0.5
 
 # MoL item-side configuration
 create_mol_interaction_module.item_use_identity_fn = False
-create_mol_interaction_module.item_dropout_rate = 0.1
 create_mol_interaction_module.item_hidden_dim = -1
+create_mol_interaction_module.item_dropout_rate = 0.1
 create_mol_interaction_module.item_nonlinearity = "swiglu"
 
 # MoL gating configuration
-create_mol_interaction_module.gating_combination_type = "glu_silu"
-create_mol_interaction_module.gating_query_hidden_dim = 128
-create_mol_interaction_module.gating_item_hidden_dim = 128
-create_mol_interaction_module.gating_item_dropout_rate = 0.0
-create_mol_interaction_module.gating_qi_hidden_dim = 128
-create_mol_interaction_module.gating_qi_dropout_rate = 0.1
-
 create_mol_interaction_module.temperature = 0.05
 create_mol_interaction_module.softmax_dropout_rate = 0.2
-
-# get_similarity_function.bf16_training = True
+create_mol_interaction_module.gating_qi_hidden_dim = 128
+create_mol_interaction_module.gating_query_hidden_dim = 128
+create_mol_interaction_module.gating_item_hidden_dim = 128
+create_mol_interaction_module.gating_combination_type = "glu_silu"
 
 train_fn.loss_module = "SampledSoftmaxLoss"
 train_fn.num_negatives = 128
