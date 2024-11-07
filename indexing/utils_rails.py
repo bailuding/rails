@@ -16,9 +16,10 @@
 
 import torch
 
-from indexing.candidate_index import CandidateIndex, TopKModule
-from indexing.mol_top_k import MoLBruteForceTopK, MoLNaiveTopK, MoLAvgTopK, MoLCombTopK
-from indexing.mips_top_k import MIPSBruteForceTopK
+from indexing.candidate_index import CandidateIndex
+from rails.indexing.candidate_index import TopKModule
+from rails.indexing.mol_top_k import MoLBruteForceTopK, MoLNaiveTopK, MoLAvgTopK, MoLCombTopK
+from rails.indexing.mips_top_k import MIPSBruteForceTopK
 
 
 def get_top_k_module(top_k_method: str, model: torch.nn.Module, item_embeddings: torch.Tensor, item_ids: torch.Tensor) -> TopKModule:

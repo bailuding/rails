@@ -30,9 +30,10 @@ import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
 
 from indexing.candidate_index import CandidateIndex, TopKModule
-from modeling.ndp_module import NDPModule
 from modeling.sequential.features import SequentialFeatures, movielens_seq_features_from_row
 from modeling.sequential.utils import get_current_embeddings
+
+from rails.similarities.module import SimilarityModule
 
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -46,7 +47,7 @@ class EvalState:
 
 
 def eval_classification_metrics_from_tensors(
-    model: NDPModule,
+    model: SimilarityModule,
     seq_features: SequentialFeatures,
     all_item_ids: List[int],  # [X]
     negatives_sampler,
@@ -164,7 +165,7 @@ def eval_classification_metrics_from_tensors(
 
 @torch.inference_mode
 def get_eval_state(
-    model: NDPModule,
+    model: SimilarityModule,
     all_item_ids: List[int],  # [X]
     negatives_sampler,
     top_k_module_fn: Callable[[torch.Tensor, torch.Tensor], TopKModule],
@@ -192,7 +193,7 @@ def get_eval_state(
 @torch.inference_mode
 def eval_metrics_v2_from_tensors(
     eval_state: EvalState,
-    model: NDPModule,
+    model: SimilarityModule,
     seq_features: SequentialFeatures,
     target_ids: torch.Tensor,  # [B, 1]
     min_positive_rating: int = 4,

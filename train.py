@@ -24,7 +24,7 @@ import os
 import random
 
 from datetime import date
-from typing import Optional
+from typing import Dict, Optional
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"  # Hide excessive tensorflow debug messages
 import sys
@@ -51,8 +51,8 @@ from modeling.sequential.autoregressive_losses import (
     BCELoss,
     InBatchNegativesSampler,
     LocalNegativesSampler,
-    SampledSoftmaxLoss,
 )
+from modeling.sequential.losses.sampled_softmax import SampledSoftmaxLoss
 from modeling.sequential.embedding_modules import EmbeddingModule, LocalEmbeddingModule
 from modeling.sequential.encoder_utils import get_sequential_encoder
 from modeling.sequential.features import movielens_seq_features_from_row
@@ -90,6 +90,19 @@ def cleanup():
 
 
 @gin.configurable
+def get_weighted_loss(
+    main_loss: torch.Tensor,
+    aux_losses: Dict[str, torch.Tensor],
+    weights: Dict[str, float],
+) -> torch.Tensor:
+    weighted_loss = main_loss
+    for key, weight in weights.items():
+        cur_weighted_loss = aux_losses[key] * weight
+        weighted_loss = weighted_loss + cur_weighted_loss
+    return weighted_loss
+
+
+@gin.configurable
 def train_fn(
     rank: int,
     world_size: int,
@@ -107,6 +120,7 @@ def train_fn(
     user_embedding_norm: str = "l2_norm",
     sampling_strategy: str = "in-batch",
     loss_module: str = "SampledSoftmaxLoss",
+    loss_weights: Dict[str, float] = {},
     num_negatives: int = 1,
     loss_activation_checkpoint: bool = False,
     item_l2_norm: bool = False,
@@ -130,6 +144,8 @@ def train_fn(
 ) -> None:
     # to enable more deterministic results.
     random.seed(random_seed)
+    torch.manual_seed(random_seed)
+    torch.cuda.manual_seed(random_seed)
     torch.backends.cuda.matmul.allow_tf32 = enable_tf32
     torch.backends.cudnn.allow_tf32 = enable_tf32
     logging.info(f"cuda.matmul.allow_tf32: {enable_tf32}")
@@ -232,6 +248,9 @@ def train_fn(
     else:
         raise ValueError(f"Unrecognized loss module {loss_module}.")
 
+    if loss_weights:
+        loss_debug_str += "-lw" + "-".join([f"{k}:{v}" for k, v in loss_weights.items()])
+
     # sampling
     if sampling_strategy == "in-batch":
         negatives_sampler = InBatchNegativesSampler(
@@ -253,6 +272,7 @@ def train_fn(
     else:
         raise ValueError(f"Unrecognized sampling strategy {sampling_strategy}.")
     sampling_debug_str = negatives_sampler.debug_str()
+    # sampling_debug_str += "-r1"
 
     # Creates model and moves it to GPU with id rank
     device = rank
@@ -294,7 +314,7 @@ def train_fn(
         logging.info(f"Rank {rank}: disabling summary writer")
 
     last_training_time = time.time()
-    torch.autograd.set_detect_anomaly(True)
+    # torch.autograd.set_detect_anomaly(True)
 
     batch_id = 0
     for epoch in range(num_epochs):
@@ -313,13 +333,6 @@ def train_fn(
             if (batch_id % eval_interval) == 0:
                 model.eval()
 
-                seq_features, target_ids, target_ratings = (
-                    movielens_seq_features_from_row(
-                        row,
-                        device=device,
-                        max_output_length=gr_output_length + 1,
-                    )
-                )
                 eval_state = get_eval_state(
                     model=model.module,
                     all_item_ids=dataset.all_item_ids,
@@ -392,14 +405,13 @@ def train_fn(
                 supervision_embeddings=input_embeddings[:, 1:, :],  # [B, N - 1, D]
                 supervision_weights=ar_mask.float(),
                 negatives_sampler=negatives_sampler,
-                aux_payloads=seq_features.past_payloads,
+                **seq_features.past_payloads,
             )  # [B, N]
             if rank == 0:
                 writer.add_scalar("losses/ar_loss", loss, batch_id)
 
             main_loss = loss.detach().clone()
-            for key, value in aux_losses.items():
-                loss += value
+            loss = get_weighted_loss(loss, aux_losses, weights=loss_weights)
             loss.backward()
 
             # Optional linear warmup.

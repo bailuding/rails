@@ -1,6 +1,7 @@
 # Temporary logs used in this project.
 logs/
 exps/
+ckpts/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

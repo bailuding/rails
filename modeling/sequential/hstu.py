@@ -26,7 +26,7 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
-from modeling.ndp_module import NDPModule
+from rails.similarities.module import SimilarityModule
 
 from modeling.sequential.embedding_modules import EmbeddingModule
 from modeling.sequential.input_features_preprocessors import (
@@ -556,7 +556,7 @@ class HSTU(GeneralizedInteractionModule):
         linear_dropout_rate: float,
         attn_dropout_rate: float,
         embedding_module: EmbeddingModule,
-        similarity_module: NDPModule,
+        similarity_module: SimilarityModule,
         input_features_preproc_module: InputFeaturesPreprocessorModule,
         output_postproc_module: OutputPostprocessorModule,
         enable_relative_attention_bias: bool = True,

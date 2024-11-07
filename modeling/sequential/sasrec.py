@@ -29,7 +29,6 @@ from typing import Dict, Optional, Tuple
 import torch
 import torch.nn.functional as F
 
-from modeling.ndp_module import NDPModule
 from modeling.sequential.embedding_modules import EmbeddingModule
 from modeling.sequential.input_features_preprocessors import (
     InputFeaturesPreprocessorModule,
@@ -37,6 +36,7 @@ from modeling.sequential.input_features_preprocessors import (
 from modeling.sequential.output_postprocessors import OutputPostprocessorModule
 from modeling.sequential.utils import get_current_embeddings
 from modeling.similarity_module import GeneralizedInteractionModule
+from rails.similarities.module import SimilarityModule
 
 
 class StandardAttentionFF(torch.nn.Module):
@@ -96,7 +96,7 @@ class SASRec(GeneralizedInteractionModule):
         ffn_activation_fn: str,
         ffn_dropout_rate: float,
         embedding_module: EmbeddingModule,
-        similarity_module: NDPModule,
+        similarity_module: SimilarityModule,
         input_features_preproc_module: InputFeaturesPreprocessorModule,
         output_postproc_module: OutputPostprocessorModule,
         activation_checkpoint: bool = False,

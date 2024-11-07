@@ -20,12 +20,11 @@ Example usage:
 *******************
 ****** ML-1M ******
 *******************
-07/11/2024
+10/06/2024
 Config: configs/ml-1m/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.gin
-Checkpoint: ckpts/ml-1m-l200/HSTU-b8-h2-dqk25-dv25-lsilud0.2-ad0.0_MoL-8x4x64-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu-uids6040d0.5_local_ssl-n128-b128-lr0.001-wu0-wd0.001-2024-06-19_ep75
-CUDA_VISIBLE_DEVICES=1 python3 eval_from_checkpoint.py --eval_batch_size=32 --gin_config_file=configs/ml-1m/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.gin  --top_k_method=MoLBruteForceTopK --inference_from_ckpt=ckpts/ml-1m-l200/HSTU-b8-h2-dqk25-dv25-lsilud0.2-ad0.0_MoL-8x4x64-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu-uids6040d0.5_local_ssl-n128-b128-lr0.001-wu0-wd0.001-2024-06-19_ep75  --master_port=12346
-eval @ epoch 75 (189 iters, 6048 evaluated) in 13.59s: NDCG@1 0.0846, NDCG@5 0.1634, NDCG@10 0.1958, NDCG@50 0.2541, NDCG@100 0.2698, NDCG@200 0.3115, HR@1 0.0846, HR@5 0.2402, HR@10 0.3404, HR@50 0.6040, HR@100 0.7002, HR@200 1.0000, MRR 0.1676, EvalTimeAvgMs 0.65, EvalTimeDevMs 0.01, EvalSample 23
-# rails/ 0722: eval @ epoch 75 (189 iters, 6048 evaluated) in 19.15s: NDCG@1 0.0844, NDCG@5 0.1628, NDCG@10 0.1952, NDCG@50 0.2537, NDCG@100 0.2694, NDCG@200 0.3127, HR@1 0.0844, HR@5 0.2394, HR@10 0.3396, HR@50 0.6036, HR@100 0.7000, HR@200 1.0000, MRR 0.1676, EvalTimeAvgMs 0.61, EvalTimeDevMs 0.01, EvalSample 23
+Checkpoint: ckpts/ml-1m-l200/HSTU-b8-h2-dqk25-dv25-lsilud0.2-ad0.0_MoL-8x4x64-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu-uids6040d0.5_local_ssl-n128-lwuid_embedding_l2_norm:0.1-mi_loss:0.001-b128-lr0.001-wu0-wd0.001-2024-11-06_ep72
+CUDA_VISIBLE_DEVICES=1 python3 eval_from_checkpoint.py --eval_batch_size=32 --gin_config_file=configs/ml-1m/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.gin  --top_k_method=MoLBruteForceTopK --inference_from_ckpt=ckpts/ml-1m-l200/HSTU-b8-h2-dqk25-dv25-lsilud0.2-ad0.0_MoL-8x4x64-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu-uids6040d0.5_local_ssl-n128-lwuid_embedding_l2_norm:0.1-mi_loss:0.001-b128-lr0.001-wu0-wd0.001-2024-11-06_ep72
+eval @ epoch 72 (378 iters, 6048 evaluated) in 35.83s: NDCG@1 0.0866, NDCG@5 0.1651, NDCG@10 0.1990, NDCG@50 0.2552, NDCG@100 0.2718, NDCG@200 0.3146, HR@1 0.0866, HR@5 0.2411, HR@10 0.3465, HR@50 0.6018, HR@100 0.7036, HR@200 1.0000, MRR 0.1699
 
 ********************
 ****** ML-20M ******
@@ -78,7 +77,7 @@ from torch.utils.tensorboard import SummaryWriter
 from data.reco_dataset import get_reco_dataset
 from data.eval import _avg, get_eval_state, eval_metrics_v2_from_tensors
 from indexing.utils_rails import get_top_k_module
-from modeling.sequential.autoregressive_losses import InBatchNegativesSampler, LocalNegativesSampler, SampledSoftmaxLoss, BCELoss
+from modeling.sequential.autoregressive_losses import InBatchNegativesSampler, LocalNegativesSampler
 from modeling.sequential.embedding_modules import EmbeddingModule, CategoricalEmbeddingModule, LocalEmbeddingModule
 from modeling.sequential.encoder_utils import get_sequential_encoder
 from modeling.sequential.input_features_preprocessors import InputFeaturesPreprocessorModule, LearnablePositionalEmbeddingInputFeaturesPreprocessor
@@ -86,9 +85,7 @@ from modeling.sequential.output_postprocessors import L2NormEmbeddingPostprocess
 from modeling.sequential.sasrec import SASRec
 from modeling.sequential.hstu import HSTU
 from modeling.sequential.features import movielens_seq_features_from_row, SequentialFeatures
-from modeling.similarity.dot_product import DotProductSimilarity
-from modeling.similarity.mol_utils import create_mol_interaction_module
-from modeling.initialization import init_mlp_xavier_weights_zero_bias
+from modeling.similarity_utils import get_similarity_function
 from trainer.data_loader import create_data_loader
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -147,6 +144,7 @@ def train_fn(
     eval_interval: int = 1000,
     full_eval_every_n: int = 0,
     loss_module: str = "",
+    loss_weights: Dict[str, float] = {},
     item_l2_norm: bool = False,
     save_ckpt_every_n: int = 1000,
     partial_eval_num_iters: int = 32,
@@ -162,7 +160,7 @@ def train_fn(
     random.seed(42)
     torch.manual_seed(42)
 
-    main_module_bf16 = True
+    #main_module_bf16 = True
     logging.info("Enabling eval in bf16 to speed up.")
     torch.backends.cuda.matmul.allow_tf32 = enable_tf32
     torch.backends.cudnn.allow_tf32 = enable_tf32
@@ -202,19 +200,11 @@ def train_fn(
         raise ValueError(f"Unknown embedding_module_type {embedding_module_type}")
     model_debug_str += f"-{embedding_module.debug_str()}"
 
-    interaction_module = None
-    interaction_module_debug_str = interaction_module_type
-
-    if interaction_module_type == "DotProduct":
-        interaction_module = DotProductSimilarity()
-    elif interaction_module_type == "MoL":
-        interaction_module, interaction_module_debug_str = create_mol_interaction_module(
-            query_embedding_dim=item_embedding_dim,
-            item_embedding_dim=item_embedding_dim,
-            bf16_training=mol_bf16_training,
-        )
-    else:
-        raise ValueError(f"Unknown interaction_module_type {interaction_module_type}")
+    interaction_module, interaction_module_debug_str = get_similarity_function(
+        module_type=interaction_module_type,
+        query_embedding_dim=item_embedding_dim,
+        item_embedding_dim=item_embedding_dim,
+    )
 
     if main_module == "HSTU":
         assert user_embedding_norm == "l2_norm" or user_embedding_norm == "layer_norm", f"Not implemented for {user_embedding_norm}"
@@ -281,7 +271,6 @@ def train_fn(
     logging.info(f"Restored model and optimizer state from epoch {epoch}'s ckpt: {inference_from_ckpt}. Setting cur_epoch to {epoch}")
 
     last_training_time = time.time()
-    torch.autograd.set_detect_anomaly(True)
 
     for _ in range(1):
         model.eval()

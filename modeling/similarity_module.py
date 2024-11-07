@@ -17,7 +17,7 @@ from typing import Dict, Optional, Tuple
 
 import torch
 
-from modeling.ndp_module import NDPModule
+from rails.similarities.module import SimilarityModule
 
 
 class InteractionModule(torch.nn.Module):
@@ -41,8 +41,8 @@ class InteractionModule(torch.nn.Module):
         self,
         input_embeddings: torch.Tensor,  # [B, D]
         target_ids: torch.Tensor,  # [1, X] or [B, X]
-        aux_payloads: Dict[str, torch.Tensor],
         target_embeddings: Optional[torch.Tensor] = None,   # [1, X, D'] or [B, X, D']
+        **kwargs,
     ) -> torch.Tensor:
         pass
 
@@ -50,11 +50,11 @@ class InteractionModule(torch.nn.Module):
 class GeneralizedInteractionModule(InteractionModule):
     def __init__(
         self,
-        ndp_module: NDPModule,
+        ndp_module: SimilarityModule,
     ) -> None:
         super().__init__()
 
-        self._ndp_module: NDPModule = ndp_module
+        self._ndp_module: SimilarityModule = ndp_module
 
     @abc.abstractmethod
     def debug_str(
@@ -66,8 +66,8 @@ class GeneralizedInteractionModule(InteractionModule):
         self,
         input_embeddings: torch.Tensor,
         target_ids: torch.Tensor,
-        aux_payloads: Dict[str, torch.Tensor],
         target_embeddings: Optional[torch.Tensor] = None,
+        **kwargs,
     ) -> torch.Tensor:
         torch._assert(len(input_embeddings.size()) == 2, "len(input_embeddings.size()) must be 2")
         torch._assert(len(target_ids.size()) == 2, "len(target_ids.size()) must be 2")
@@ -76,10 +76,9 @@ class GeneralizedInteractionModule(InteractionModule):
         torch._assert(len(target_embeddings.size()) == 3, "len(target_embeddings.size()) must be 3")
 
         return self._ndp_module(
-            input_embeddings=input_embeddings,  # [B, self._input_embedding_dim]
-            item_embeddings=target_embeddings,  # [1/B, X, self._item_embedding_dim]
-            item_sideinfo=self.get_item_sideinfo(item_ids=target_ids),  # [1/B, X, self._item_sideinfo_dim]
+            query_embeddings=input_embeddings,  # (B, self._input_embedding_dim)
+            item_embeddings=target_embeddings,  # (1/B, X, self._item_embedding_dim)
+            item_sideinfo=self.get_item_sideinfo(item_ids=target_ids),  # (1/B, X, self._item_sideinfo_dim)
             item_ids=target_ids,
-            precomputed_logits=None,
-            aux_payloads=aux_payloads,
+            **kwargs,
         )
