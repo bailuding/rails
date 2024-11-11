@@ -16,7 +16,7 @@
 # to match MoL implementations on public datasets.
 
 # Defines utility functions used to create Mixture-of-Logits learned similarity functions. Used by
-# - Revisiting Neural Retrieval on Accelerators (https://arxiv.org/abs/2306.04039, KDD'23)
+# - Revisiting Neural Retrieval on Accelerators (KDD'23)
 # - Retrieval with Learned Similarities (RAILS).
 
 from typing import Tuple, Optional, List
@@ -24,7 +24,7 @@ from typing import Tuple, Optional, List
 import gin
 import torch
 
-from rails.similarities.dot_product_similarity import DotProductSimilarity
+from rails.similarities.dot_product_similarity_fn import DotProductSimilarity
 from rails.similarities.layers import GeGLU, SwiGLU
 from rails.similarities.mol.similarity_fn import MoLSimilarity, SoftmaxDropoutCombiner
 from rails.similarities.mol.query_embeddings_fns import RecoMoLQueryEmbeddingsFn

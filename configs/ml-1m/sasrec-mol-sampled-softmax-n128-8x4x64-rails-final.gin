@@ -66,6 +66,7 @@ create_mol_interaction_module.gating_item_hidden_dim = 128
 create_mol_interaction_module.gating_combination_type = "glu_silu"
 
 train_fn.loss_module = "SampledSoftmaxLoss"
+train_fn.loss_weights = {"uid_embedding_l2_norm": 0.1, "mi_loss": 0.001}
 train_fn.num_negatives = 128
 
 train_fn.sampling_strategy = "local"

@@ -34,7 +34,7 @@ from modeling.sequential.input_features_preprocessors import (
 )
 from modeling.sequential.output_postprocessors import OutputPostprocessorModule
 from modeling.sequential.utils import get_current_embeddings
-from modeling.similarity_module import GeneralizedInteractionModule
+from modeling.similarity_module import SequentialEncoderWithLearnedSimilarityModule
 
 
 TIMESTAMPS_KEY = "timestamps"
@@ -530,7 +530,7 @@ class HSTUJagged(torch.nn.Module):
         return y, cache_states
 
 
-class HSTU(GeneralizedInteractionModule):
+class HSTU(SequentialEncoderWithLearnedSimilarityModule):
     """
     Implements HSTU (Hierarchical Sequential Transduction Unit) in
     Actions Speak Louder than Words: Trillion-Parameter Sequential Transducers for Generative Recommendations,

@@ -272,7 +272,6 @@ def train_fn(
     else:
         raise ValueError(f"Unrecognized sampling strategy {sampling_strategy}.")
     sampling_debug_str = negatives_sampler.debug_str()
-    # sampling_debug_str += "-r1"
 
     # Creates model and moves it to GPU with id rank
     device = rank
@@ -433,7 +432,7 @@ def train_fn(
                     writer.add_scalar("loss/train", main_loss, batch_id)
                     writer.add_scalar("loss/incl_aux/train", loss, batch_id)
                     for key, value in aux_losses.items():
-                        writer.add_scalar(f"loss/{key}/train", value, batch_id)
+                        writer.add_scalar(f"loss/{key}/train", value.float(), batch_id)
                     writer.add_scalar("lr", lr, batch_id)
 
             opt.step()

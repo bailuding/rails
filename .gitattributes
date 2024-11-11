@@ -4,3 +4,5 @@ tmp/amzn_books/sasrec_format.csv filter=lfs diff=lfs merge=lfs -text
 tmp/processed/ml-20m/ratings.csv filter=lfs diff=lfs merge=lfs -text
 tmp/ml-20m/sasrec_format.csv filter=lfs diff=lfs merge=lfs -text
 tmp/ml-1m/sasrec_format.csv filter=lfs diff=lfs merge=lfs -text
+ckpts/ml-20m-l200/HSTU-b16-h8-dqk32-dv32-lsilud0.2-ad0.0_MoL-8x4x128-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.1-x-glu_silu-uids16384d0.8_local_ssl-n128-lwuid_embedding_l2_norm:0.1-mi_loss:0.001-b128-lr0.001-wu0-wd0.001-2024-11-07_ep145 filter=lfs diff=lfs merge=lfs -text
+ckpts/amzn-books-l50/HSTU-b16-h8-dqk8-dv8-lsilud0.5-ad0.0_MoL-8x8x32-t0.05-d0.2-l2-q512d0.0geglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu_local_ssl-n512-lwmi_loss:0.001-ddp2-b64-lr0.001-wu0-wd0-2024-11-06-fe5_ep160 filter=lfs diff=lfs merge=lfs -text

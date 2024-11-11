@@ -31,7 +31,7 @@ class SimilarityModule(torch.nn.Module):
             query_embeddings: (B, input_embedding_dim) x float.
             item_embeddings: (1/B, X, item_embedding_dim) x float.
             **kwargs: Implementation-specific keys/values (e.g.,
-                item sideinfo, etc.)
+                item ids / sideinfo, etc.)
 
         Returns:
             A tuple of (

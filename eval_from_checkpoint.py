@@ -1,4 +1,4 @@
-# Efficient Retrieval with Learned Similarities (RAILS).
+# Retrieval with Learned Similarities (RAILS).
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,32 +20,29 @@ Example usage:
 *******************
 ****** ML-1M ******
 *******************
-10/06/2024
+Verified @ 11/10/2024
 Config: configs/ml-1m/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.gin
 Checkpoint: ckpts/ml-1m-l200/HSTU-b8-h2-dqk25-dv25-lsilud0.2-ad0.0_MoL-8x4x64-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu-uids6040d0.5_local_ssl-n128-lwuid_embedding_l2_norm:0.1-mi_loss:0.001-b128-lr0.001-wu0-wd0.001-2024-11-06_ep72
 CUDA_VISIBLE_DEVICES=1 python3 eval_from_checkpoint.py --eval_batch_size=32 --gin_config_file=configs/ml-1m/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.gin  --top_k_method=MoLBruteForceTopK --inference_from_ckpt=ckpts/ml-1m-l200/HSTU-b8-h2-dqk25-dv25-lsilud0.2-ad0.0_MoL-8x4x64-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu-uids6040d0.5_local_ssl-n128-lwuid_embedding_l2_norm:0.1-mi_loss:0.001-b128-lr0.001-wu0-wd0.001-2024-11-06_ep72
-eval @ epoch 72 (378 iters, 6048 evaluated) in 35.83s: NDCG@1 0.0866, NDCG@5 0.1651, NDCG@10 0.1990, NDCG@50 0.2552, NDCG@100 0.2718, NDCG@200 0.3146, HR@1 0.0866, HR@5 0.2411, HR@10 0.3465, HR@50 0.6018, HR@100 0.7036, HR@200 1.0000, MRR 0.1699
+eval @ epoch 72 (189 iters, 6048 evaluated) in 38.99s: NDCG@1 0.0874, NDCG@5 0.1660, NDCG@10 0.1999, NDCG@50 0.2560, NDCG@100 0.2726, HR@1 0.0874, HR@5 0.2422, HR@10 0.3474, HR@50 0.6023, HR@100 0.7041, MRR 0.1694
 
 ********************
 ****** ML-20M ******
 ********************
-07/11/2024
+Verified @ 11/10/2024
 Config: configs/ml-20m/hstu-mol-sampled-softmax-n128-8x4x128-rails-final.gin
-Checkpoint: ckpts/ml-20m-l200/HSTU-b16-h8-dqk32-dv32-lsilud0.2-ad0.0_MoL-8x4x128-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.1-x-glu_silu-uids16384d0.8-l20.1_local_ssl-n128-ddp2avg-b64-lr0.001-wu0-wd0-2024-06-19_ep90
-CUDA_VISIBLE_DEVICES=1 python3 eval_from_checkpoint.py --eval_batch_size=32 --gin_config_file=configs/ml-20m/hstu-mol-sampled-softmax-n128-8x4x128-rails-final.gin --top_k_method=MoLBruteForceTopK --inference_from_ckpt=ckpts/ml-20m-l200/HSTU-b16-h8-dqk32-dv32-lsilud0.2-ad0.0_MoL-8x4x128-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.1-x-glu_silu-uids16384d0.8-l20.1_local_ssl-n128-ddp2avg-b64-lr0.001-wu0-wd0-2024-06-19_ep90  --master_port=12346
-eval @ epoch 90 (4328 iters, 138496 evaluated) in 122.70s: NDCG@1 0.1004, NDCG@5 0.1855, NDCG@10 0.2178, NDCG@50 0.2748, NDCG@100 0.2914, NDCG@200 0.3295, HR@1 0.1004, HR@5 0.2670, HR@10 0.3669, HR@50 0.6240, HR@100 0.7257, HR@200 1.0000, MRR 0.1877, EvalTimeAvgMs 3.08, EvalTimeDevMs 0.02, EvalSample 412
-# rails/ 0722: eval @ epoch 90 (4328 iters, 138496 evaluated) in 130.27s: NDCG@1 0.0994, NDCG@5 0.1843, NDCG@10 0.2165, NDCG@50 0.2736, NDCG@100 0.2903, NDCG@200 0.3300, HR@1 0.0994, HR@5 0.2653, HR@10 0.3652, HR@50 0.6228, HR@100 0.7252, HR@200 1.0000, MRR 0.1870, EvalTimeAvgMs 3.07, EvalTimeDevMs 0.27, EvalSample 412
+Checkpoint: ckpts/ml-20m-l200/HSTU-b16-h8-dqk32-dv32-lsilud0.2-ad0.0_MoL-8x4x128-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.1-x-glu_silu-uids16384d0.8_local_ssl-n128-lwuid_embedding_l2_norm:0.1-mi_loss:0.001-b128-lr0.001-wu0-wd0.001-2024-11-07_ep145
+CUDA_VISIBLE_DEVICES=0 python3 eval_from_checkpoint.py --eval_batch_size=32 --gin_config_file=configs/ml-20m/hstu-mol-sampled-softmax-n128-8x4x128-rails-final.gin --top_k_method=MoLBruteForceTopK --inference_from_ckpt=ckpts/ml-20m-l200/HSTU-b16-h8-dqk32-dv32-lsilud0.2-ad0.0_MoL-8x4x128-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.1-x-glu_silu-uids16384d0.8_local_ssl-n128-lwuid_embedding_l2_norm:0.1-mi_loss:0.001-b128-lr0.001-wu0-wd0.001-2024-11-07_ep145
+eval @ epoch 145 (4328 iters, 138496 evaluated) in 128.34s: NDCG@1 0.1024, NDCG@5 0.1879, NDCG@10 0.2202, NDCG@50 0.2772, NDCG@100 0.2933, HR@1 0.1024, HR@5 0.2693, HR@10 0.3695, HR@50 0.6259, HR@100 0.7251, MRR 0.1892
 
 **************************
 ****** Amazon Books ******
 **************************
-07/11/2024
-Config: configs/amzn-books/hstu-mol-sampled-softmax-n512-d64-b16-h8-8x8x32-rails-final.gin
-Checkpoint: ckpts/amzn-books-l50/HSTU-b16-h8-dqk8-dv8-lsilud0.5-ad0.0_MoL-8x8x32-t0.05-d0.2-l2-q512d0.0geglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu_local_ssl-n512-ddp2avg-b64-lr0.001-wu0-wd0-2024-06-20-fe5_ep115_v2
-
-CUDA_VISIBLE_DEVICES=1 python3 eval_from_checkpoint.py --limit_eval_to_first_n=8192 --eval_batch_size=32 --gin_config_file=configs/amzn-books/hstu-mol-sampled-softmax-n512-8x8x32-rails-final.gin --top_k_method=MoLBruteForceTopK  --inference_from_ckpt=ckpts/amzn-books-l50/HSTU-b16-h8-dqk8-dv8-lsilud0.5-ad0.0_MoL-8x8x32-t0.05-d0.2-l2-q512d0.0geglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu_local_ssl-n512-ddp2avg-b64-lr0.001-wu0-wd0-2024-06-20-fe5_ep115 --master_port=12346
-eval @ epoch 115 (256 iters, 8192 evaluated) in 155.65s: NDCG@1 0.0171, NDCG@5 0.0310, NDCG@10 0.0377, NDCG@50 0.0525, NDCG@100 0.0591, NDCG@200 0.1733, HR@1 0.0171, HR@5 0.0447, HR@10 0.0653, HR@50 0.1328, HR@100 0.1737, HR@200 1.0000, MRR 0.0385, EvalTimeAvgMs 148.94, EvalTimeDevMs 0.53, EvalSample 28
-# rails/ 0722: eval @ epoch 115 (256 iters, 8192 evaluated) in 162.16s: NDCG@1 0.0149, NDCG@5 0.0304, NDCG@10 0.0362, NDCG@50 0.0523, NDCG@100 0.0585, NDCG@200 0.1774, HR@1 0.0149, HR@5 0.0457, HR@10 0.0637, HR@50 0.1376, HR@100 0.1758, HR@200 1.0000, MRR 0.0385, EvalTimeAvgMs 148.90, EvalTimeDevMs 0.48, EvalSample 28
+Verified @ 11/10/2024
+Config: configs/amzn-books/hstu-mol-sampled-softmax-n512-8x8x32-rails-final.gin
+Checkpoint: ckpts/amzn-books-l50/HSTU-b16-h8-dqk8-dv8-lsilud0.5-ad0.0_MoL-8x8x32-t0.05-d0.2-l2-q512d0.0geglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu_local_ssl-n512-lwmi_loss:0.001-ddp2-b64-lr0.001-wu0-wd0-2024-11-06-fe5_ep160
+CUDA_VISIBLE_DEVICES=0 python3 eval_from_checkpoint.py --limit_eval_to_first_n=8192 --eval_batch_size=32 --gin_config_file=configs/amzn-books/hstu-mol-sampled-softmax-n512-8x8x32-rails-final.gin --top_k_method=MoLBruteForceTopK  --inference_from_ckpt=ckpts/amzn-books-l50/HSTU-b16-h8-dqk8-dv8-lsilud0.5-ad0.0_MoL-8x8x32-t0.05-d0.2-l2-q512d0.0geglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu_local_ssl-n512-lwmi_loss:0.001-ddp2-b64-lr0.001-wu0-wd0-2024-11-06-fe5_ep160
+eval @ epoch 160 (256 iters, 8192 evaluated) in 76.48s: NDCG@1 0.0172, NDCG@5 0.0309, NDCG@10 0.0372, NDCG@50 0.0532, NDCG@100 0.0588, HR@1 0.0172, HR@5 0.0438, HR@10 0.0634, HR@50 0.1366, HR@100 0.1711, MRR 0.0339
 """
 
 from dataclasses import dataclass
@@ -96,16 +93,34 @@ flags.DEFINE_string(
 flags.DEFINE_integer("master_port", 12355, "Master port.")
 flags.DEFINE_string("inference_from_ckpt", None, "Inference using loaded checkpoint, then exit if set.")
 flags.DEFINE_string("top_k_method", None, "Top-K method.")
-flags.DEFINE_integer("limit_eval_to_first_n", 0, "")
-flags.DEFINE_integer("eval_batch_size", 64, "")
+flags.DEFINE_integer("limit_eval_to_first_n", 0, "Limit eval to first N items.")
+flags.DEFINE_integer("eval_batch_size", 64, "Batch size for evals.")
+flags.DEFINE_boolean("include_eval_time", False, "Please set this to False for strict accuracy checks.")
 
 
 FLAGS = flags.FLAGS
 
 
+def is_port_in_use(port: int) -> bool:
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(('localhost', port))
+            return False
+        except socket.error:
+            return True
+
+
 def setup(rank: int, world_size: int, master_port: int) -> None:
+    # Find next available port if the specified one is in use
+    current_port = master_port
+    while is_port_in_use(current_port):
+        current_port += 1
+        if current_port > master_port + 20:  # Avoid infinite loop
+            raise RuntimeError(f"Could not find available port after trying {master_port} through {current_port-1}")
+    
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = str(master_port)
+    os.environ['MASTER_PORT'] = str(current_port)
 
     # initialize the process group
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
@@ -123,6 +138,7 @@ def train_fn(
     inference_from_ckpt: str,
     top_k_method: str,
     limit_eval_to_first_n: int,
+    include_eval_time: bool,
     dataset_name: str = "ml-20m",
     max_sequence_length: int = 200,
     local_batch_size: int = 128,
@@ -153,6 +169,7 @@ def train_fn(
     interaction_module_type: str = "",
     gr_output_length: int = 10,
     mol_bf16_training: bool = False,
+    eval_bf16: bool = False,
     l2_norm_eps: float = 1e-6,
     enable_tf32: bool = False,
     opt_enable_apex: bool = False,
@@ -289,7 +306,7 @@ def train_fn(
                 item_ids=item_ids,
             ),
             device=device, 
-            float_dtype=torch.bfloat16 if main_module_bf16 else None,
+            float_dtype=torch.bfloat16 if main_module_bf16 or eval_bf16 else None,
         )
         for eval_iter, row in enumerate(iter(test_data_loader)):
             seq_features, target_ids, target_ratings = movielens_seq_features_from_row(row, device=device, max_output_length=gr_output_length + 1)
@@ -297,7 +314,8 @@ def train_fn(
                 eval_state, model.module, seq_features, target_ids=target_ids, target_ratings=target_ratings,
                 user_max_batch_size=eval_user_max_batch_size,
                 include_full_matrices=False,
-                include_eval_time=True,
+                include_eval_time=include_eval_time,
+                dtype=torch.bfloat16 if main_module_bf16 or eval_bf16 else None,
             )
 
             if eval_dict_all is None:
@@ -322,24 +340,29 @@ def train_fn(
         ndcg_10 = _avg(eval_dict_all["ndcg@10"], world_size=world_size)
         ndcg_50 = _avg(eval_dict_all["ndcg@50"], world_size=world_size)
         ndcg_100 = _avg(eval_dict_all["ndcg@100"], world_size=world_size)
-        ndcg_200 = _avg(eval_dict_all["ndcg@200"], world_size=world_size)
         hr_1 = _avg(eval_dict_all["hr@1"], world_size=world_size)
         hr_5 = _avg(eval_dict_all["hr@5"], world_size=world_size)
         hr_10 = _avg(eval_dict_all["hr@10"], world_size=world_size)
         hr_50 = _avg(eval_dict_all["hr@50"], world_size=world_size)
         hr_100 = _avg(eval_dict_all["hr@100"], world_size=world_size)
-        hr_200 = _avg(eval_dict_all["hr@200"], world_size=world_size)
         mrr = _avg(eval_dict_all["mrr"], world_size=world_size)
-        eval_time_avg_ms = 1000 * statistics.mean(eval_dict_all["eval_time"])
-        eval_time_dev_ms = 1000 * statistics.stdev(eval_dict_all["eval_time"])
-        eval_sample = len(eval_dict_all["eval_time"])
 
-        logging.info(f"rank {rank}: eval @ epoch {epoch} ({eval_iter + 1} iters, {(eval_iter + 1) * eval_batch_size} evaluated) in {time.time() - eval_start_time:.2f}s: "
-                     f"NDCG@1 {ndcg_1:.4f}, NDCG@5 {ndcg_5:.4f}, NDCG@10 {ndcg_10:.4f}, NDCG@50 {ndcg_50:.4f}, NDCG@100 {ndcg_100:.4f}, NDCG@200 {ndcg_200:.4f}, HR@1 {hr_1:.4f}, HR@5 {hr_5:.4f}, HR@10 {hr_10:.4f}, HR@50 {hr_50:.4f}, HR@100 {hr_100:.4f}, HR@200 {hr_200:.4f}, MRR {mrr:.4f}, "
-                     f"EvalTimeAvgMs {eval_time_avg_ms:.2f}, EvalTimeDevMs {eval_time_dev_ms:.2f}, EvalSample { eval_sample }")
+        logging.info(f"eval @ epoch {epoch} ({eval_iter + 1} iters, {(eval_iter + 1) * eval_batch_size} evaluated) in {time.time() - eval_start_time:.2f}s: "
+                     f"NDCG@1 {ndcg_1:.4f}, NDCG@5 {ndcg_5:.4f}, NDCG@10 {ndcg_10:.4f}, NDCG@50 {ndcg_50:.4f}, NDCG@100 {ndcg_100:.4f}, HR@1 {hr_1:.4f}, HR@5 {hr_5:.4f}, HR@10 {hr_10:.4f}, HR@50 {hr_50:.4f}, HR@100 {hr_100:.4f}, MRR {mrr:.4f}")
+
+        if include_eval_time:
+            eval_time_avg_ms = 1000 * statistics.mean(eval_dict_all["eval_time"])
+            eval_time_dev_ms = 1000 * statistics.stdev(eval_dict_all["eval_time"])
+            eval_sample = len(eval_dict_all["eval_time"])
+            logging.info(f"EvalTimeAvgMs {eval_time_avg_ms:.2f}, EvalTimeDevMs {eval_time_dev_ms:.2f}, EvalSample { eval_sample }")
+
         # CSV format
-        logging.info("HR@1,HR@5,HR@10,HR@50,HR@100,BatchTimeMsAvg,BatchTimeMsDev")
-        logging.info(f"{hr_1},{hr_5},{hr_10},{hr_50},{hr_100},{eval_time_avg_ms:.3f},{eval_time_dev_ms:.3f}")
+        if include_eval_time:
+            logging.info("HR@1,HR@5,HR@10,HR@50,HR@100,BatchTimeMsAvg,BatchTimeMsDev")
+            logging.info(f"{hr_1},{hr_5},{hr_10},{hr_50},{hr_100},{eval_time_avg_ms:.3f},{eval_time_dev_ms:.3f}")
+        else:
+            logging.info("HR@1,HR@5,HR@10,HR@50,HR@100")
+            logging.info(f"{hr_1},{hr_5},{hr_10},{hr_50},{hr_100}")
 
     cleanup()
 
@@ -353,6 +376,7 @@ def mp_train_fn(
     top_k_method: str,
     limit_eval_to_first_n: int,
     eval_batch_size: int,
+    include_eval_time: bool,
 ) -> None:
     if gin_config_file is not None:
         # Hack as absl doesn't support flag parsing inside multiprocessing.
@@ -366,6 +390,7 @@ def mp_train_fn(
         limit_eval_to_first_n=limit_eval_to_first_n,
         eval_batch_size=eval_batch_size,
         eval_user_max_batch_size=eval_batch_size,
+        include_eval_time=include_eval_time,
     )
 
 def main(argv):
@@ -374,7 +399,7 @@ def main(argv):
 
     mp.set_start_method('forkserver')
     mp.spawn(mp_train_fn,
-             args=(world_size, FLAGS.master_port, FLAGS.gin_config_file, FLAGS.inference_from_ckpt, FLAGS.top_k_method, FLAGS.limit_eval_to_first_n, FLAGS.eval_batch_size),
+             args=(world_size, FLAGS.master_port, FLAGS.gin_config_file, FLAGS.inference_from_ckpt, FLAGS.top_k_method, FLAGS.limit_eval_to_first_n, FLAGS.eval_batch_size, FLAGS.include_eval_time),
              nprocs=world_size,
              join=True)
 

@@ -1,4 +1,4 @@
-# Efficient Retrieval with Learned Similarities (RAILS).
+# Retrieval with Learned Similarities (RAILS, https://arxiv.org/abs/2407.15462).
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ train_fn.local_batch_size = 128
 train_fn.main_module = "SASRec"
 train_fn.dropout_rate = 0.2
 train_fn.user_embedding_norm = "layer_norm"
-train_fn.num_epochs = 101
+train_fn.num_epochs = 201
 train_fn.item_embedding_dim = 256
 
 sasrec_encoder.num_blocks = 4
@@ -45,7 +45,6 @@ create_mol_interaction_module.dot_product_dimension = 128
 create_mol_interaction_module.dot_product_l2_norm = True
 
 # MoL query-side configuration
-create_mol_interaction_module.query_use_identity_fn = False
 create_mol_interaction_module.query_dropout_rate = 0.0
 create_mol_interaction_module.query_hidden_dim = 512
 create_mol_interaction_module.query_nonlinearity = "swiglu"
@@ -55,7 +54,6 @@ create_mol_interaction_module.uid_dropout_rate = 0.8
 create_mol_interaction_module.uid_embedding_l2_weight_decay = 1e-1
 
 # MoL item-side configuration
-create_mol_interaction_module.item_use_identity_fn = False
 create_mol_interaction_module.item_dropout_rate = 0.1
 create_mol_interaction_module.item_hidden_dim = -1
 create_mol_interaction_module.item_nonlinearity = "swiglu"
@@ -75,6 +73,7 @@ get_similarity_function.bf16_training = True
 train_fn.eval_bf16 = True
 
 train_fn.loss_module = "SampledSoftmaxLoss"
+train_fn.loss_weights = {"uid_embedding_l2_norm": 0.1, "mi_loss": 0.001}
 train_fn.num_negatives = 128
 
 train_fn.sampling_strategy = "local"

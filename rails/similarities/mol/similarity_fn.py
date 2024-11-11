@@ -15,7 +15,7 @@
 """
 Implements MoL (Mixture-of-Logits) with load balancing regularization loss, as discussed in:
 - Revisiting Neural Retrieval on Accelerators (https://arxiv.org/abs/2306.04039, KDD'23).
-- RetrievAl wIth Learned Similarities (RAILS).
+- Retrieval with Learned Similarities (https://arxiv.org/abs/2407.15462).
 """
 from typing import Callable, Dict, List, Optional, Tuple
 

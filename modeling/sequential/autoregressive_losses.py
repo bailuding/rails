@@ -286,10 +286,10 @@ class BCELoss(AutoregressiveLoss):
         )
 
         positive_logits = (
-            self._model.interaction(
-                input_embeddings=output_embeddings,  # [B, D] = [N', D]
-                target_ids=supervision_ids.unsqueeze(1),  # [N', 1]
-                target_embeddings=supervision_embeddings.unsqueeze(
+            self._model.similarity_fn(
+                query_embeddings=output_embeddings,  # [B, D] = [N', D]
+                item_ids=supervision_ids.unsqueeze(1),  # [N', 1]
+                item_embeddings=supervision_embeddings.unsqueeze(
                     1
                 ),  # [N', D] -> [N', 1, D]
             )[0].squeeze(1)
@@ -297,10 +297,10 @@ class BCELoss(AutoregressiveLoss):
         )  # [N']
 
         sampled_negatives_logits = (
-            self._model.interaction(
-                input_embeddings=output_embeddings,  # [N', D]
-                target_ids=sampled_ids,  # [N', 1]
-                target_embeddings=sampled_negative_embeddings,  # [N', 1, D]
+            self._model.similarity_fn(
+                query_embeddings=output_embeddings,  # [N', D]
+                item_ids=sampled_ids,  # [N', 1]
+                item_embeddings=sampled_negative_embeddings,  # [N', 1, D]
             )[0].squeeze(1)
             / self._temperature
         )  # [N']
@@ -402,10 +402,10 @@ class BCELossWithRatings(AutoregressiveLoss):
         assert supervision_ids.size() == supervision_weights.size()
 
         target_logits = (
-            self._model.interaction(
-                input_embeddings=output_embeddings,  # [B, D] = [N', D]
-                target_ids=supervision_ids.unsqueeze(1),  # [N', 1]
-                target_embeddings=supervision_embeddings.unsqueeze(
+            self._model.similarity_fn(
+                query_embeddings=output_embeddings,  # [B, D] = [N', D]
+                item_ids=supervision_ids.unsqueeze(1),  # [N', 1]
+                item_embeddings=supervision_embeddings.unsqueeze(
                     1
                 ),  # [N', D] -> [N', 1, D]
             )[0].squeeze(1)

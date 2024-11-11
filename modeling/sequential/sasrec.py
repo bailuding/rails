@@ -35,7 +35,7 @@ from modeling.sequential.input_features_preprocessors import (
 )
 from modeling.sequential.output_postprocessors import OutputPostprocessorModule
 from modeling.sequential.utils import get_current_embeddings
-from modeling.similarity_module import GeneralizedInteractionModule
+from modeling.similarity_module import SequentialEncoderWithLearnedSimilarityModule
 from rails.similarities.module import SimilarityModule
 
 
@@ -74,7 +74,7 @@ class StandardAttentionFF(torch.nn.Module):
         return self._conv1d(inputs.transpose(-1, -2)).transpose(-1, -2) + inputs
 
 
-class SASRec(GeneralizedInteractionModule):
+class SASRec(SequentialEncoderWithLearnedSimilarityModule):
     """
     Implements SASRec (Self-Attentive Sequential Recommendation, https://arxiv.org/abs/1808.09781, ICDM'18).
 
@@ -288,18 +288,3 @@ class SASRec(GeneralizedInteractionModule):
         return get_current_embeddings(
             lengths=past_lengths, encoded_embeddings=encoded_seq_embeddings
         )
-
-    def predict(
-        self,
-        past_ids: torch.Tensor,
-        past_ratings: torch.Tensor,
-        past_timestamps: torch.Tensor,
-        next_timestamps: torch.Tensor,
-        target_ids: torch.Tensor,
-        batch_id: Optional[int] = None,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
-        return self.interaction(
-            self.encode(past_ids, past_ratings, past_timestamps, next_timestamps),
-            target_ids,
-            batch_id=batch_id,
-        )  # [B, X]

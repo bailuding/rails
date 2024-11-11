@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # forked from facebookresearch/generative-recommenders @ 6c61e25 and updated
-# to match MoL implementations in Retrieval with Learned Similarities (RAILS).
+# to match the latest MoL implementations in Retrieval with Learned Similarities (RAILS).
 
 from collections import OrderedDict
 from typing import Dict, Optional, Tuple
@@ -60,19 +60,19 @@ class SampledSoftmaxLoss(AutoregressiveLoss):
         positive_embeddings = negatives_sampler.normalize_embeddings(
             supervision_embeddings
         )
-        positive_logits, aux_losses = self._model.interaction(
-            input_embeddings=output_embeddings,  # [B, D] = [N', D]
-            target_ids=supervision_ids.unsqueeze(1),  # [N', 1]
-            target_embeddings=positive_embeddings.unsqueeze(
+        positive_logits, aux_losses = self._model.similarity_fn(
+            query_embeddings=output_embeddings,  # [B, D] = [N', D]
+            item_ids=supervision_ids.unsqueeze(1),  # [N', 1]
+            item_embeddings=positive_embeddings.unsqueeze(
                 1
             ),  # [N', D] -> [N', 1, D]
             **kwargs,
         )
         positive_logits = positive_logits / self._softmax_temperature # [0]
-        sampled_negatives_logits, _ = self._model.interaction(
-            input_embeddings=output_embeddings,  # [N', D]
-            target_ids=sampled_ids,  # [N', R]
-            target_embeddings=sampled_negative_embeddings,  # [N', R, D]
+        sampled_negatives_logits, _ = self._model.similarity_fn(
+            query_embeddings=output_embeddings,  # [N', D]
+            item_ids=sampled_ids,  # [N', R]
+            item_embeddings=sampled_negative_embeddings,  # [N', R, D]
             **kwargs,
         )  # [N', R]  # [0]
         sampled_negatives_logits = torch.where(
