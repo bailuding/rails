@@ -16,12 +16,6 @@
 # w/ modifications for benchmarking.
 
 import abc
-from typing import Optional, Tuple
-
-import torch
-
-from modeling.sequential.utils import batch_gather_embeddings
-import abc
 from typing import Callable, Dict, Optional, Tuple
 
 import numpy as np
@@ -30,28 +24,7 @@ import torch
 import torch.nn.functional as F
 
 from modeling.sequential.utils import batch_gather_embeddings
-
-
-class TopKModule(torch.nn.Module):
-
-    @abc.abstractmethod
-    def forward(
-        self,
-        query_embeddings: torch.Tensor,
-        k: int,
-        aux_payloads: Dict[str, torch.Tensor],
-        sorted: bool = True,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Args:
-            query_embeddings: (B, X, ...). Implementation-specific.
-            k: int. top k to return.
-            sorted: bool.
-
-        Returns:
-            Tuple of (top_k_scores, top_k_ids), both of shape (B, K,)
-        """
-        pass
+from rails.indexing.candidate_index import TopKModule
 
 
 class CandidateIndex(object):
@@ -176,7 +149,7 @@ class CandidateIndex(object):
         k_prime = min(k + max_num_invalid_ids, self.num_objects)
         if truncate_k_prime_to is not None:
             k_prime = min(k_prime, truncate_k_prime_to)
-        top_k_prime_scores, top_k_prime_ids = top_k_module(query_embeddings=query_embeddings, k=k_prime, aux_payloads=aux_payloads)
+        top_k_prime_scores, top_k_prime_ids = top_k_module(query_embeddings=query_embeddings, k=k_prime, **aux_payloads)
 
         # Masks out invalid items rowwise.
         if invalid_ids is not None:

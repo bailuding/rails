@@ -26,7 +26,7 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
-from modeling.ndp_module import NDPModule
+from rails.similarities.module import SimilarityModule
 
 from modeling.sequential.embedding_modules import EmbeddingModule
 from modeling.sequential.input_features_preprocessors import (
@@ -34,7 +34,7 @@ from modeling.sequential.input_features_preprocessors import (
 )
 from modeling.sequential.output_postprocessors import OutputPostprocessorModule
 from modeling.sequential.utils import get_current_embeddings
-from modeling.similarity_module import GeneralizedInteractionModule
+from modeling.similarity_module import SequentialEncoderWithLearnedSimilarityModule
 
 
 TIMESTAMPS_KEY = "timestamps"
@@ -530,7 +530,7 @@ class HSTUJagged(torch.nn.Module):
         return y, cache_states
 
 
-class HSTU(GeneralizedInteractionModule):
+class HSTU(SequentialEncoderWithLearnedSimilarityModule):
     """
     Implements HSTU (Hierarchical Sequential Transduction Unit) in
     Actions Speak Louder than Words: Trillion-Parameter Sequential Transducers for Generative Recommendations,
@@ -556,7 +556,7 @@ class HSTU(GeneralizedInteractionModule):
         linear_dropout_rate: float,
         attn_dropout_rate: float,
         embedding_module: EmbeddingModule,
-        similarity_module: NDPModule,
+        similarity_module: SimilarityModule,
         input_features_preproc_module: InputFeaturesPreprocessorModule,
         output_postproc_module: OutputPostprocessorModule,
         enable_relative_attention_bias: bool = True,

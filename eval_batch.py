@@ -1,4 +1,4 @@
-# Efficient Retrieval with Learned Similarities (RAILS).
+# Retrieval with Learned Similarities (RAILS).
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,9 +43,9 @@ configs = {
 }
 
 checkpoints = {
-    "ml-1m": "ckpts/ml-1m-l200/HSTU-b8-h2-dqk25-dv25-lsilud0.2-ad0.0_MoL-8x4x64-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu-uids6040d0.5_local_ssl-n128-b128-lr0.001-wu0-wd0.001-2024-06-19_ep75",
-    "ml-20m": "ckpts/ml-20m-l200/HSTU-b16-h8-dqk32-dv32-lsilud0.2-ad0.0_MoL-8x4x128-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.1-x-glu_silu-uids16384d0.8-l20.1_local_ssl-n128-ddp2avg-b64-lr0.001-wu0-wd0-2024-06-19_ep90",
-    "amzn-books": "ckpts/amzn-books-l50/HSTU-b16-h8-dqk8-dv8-lsilud0.5-ad0.0_MoL-8x8x32-t0.05-d0.2-l2-q512d0.0geglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu_local_ssl-n512-ddp2avg-b64-lr0.001-wu0-wd0-2024-06-20-fe5_ep115",
+    "ml-1m": "ckpts/ml-1m-l200/HSTU-b8-h2-dqk25-dv25-lsilud0.2-ad0.0_MoL-8x4x64-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu-uids6040d0.5_local_ssl-n128-lwuid_embedding_l2_norm:0.1-mi_loss:0.001-b128-lr0.001-wu0-wd0.001-2024-11-06_ep72",
+    "ml-20m": "ckpts/ml-20m-l200/HSTU-b16-h8-dqk32-dv32-lsilud0.2-ad0.0_MoL-8x4x128-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.1-x-glu_silu-uids16384d0.8_local_ssl-n128-lwuid_embedding_l2_norm:0.1-mi_loss:0.001-b128-lr0.001-wu0-wd0.001-2024-11-07_ep145",
+    "amzn-books": "ckpts/amzn-books-l50/HSTU-b16-h8-dqk8-dv8-lsilud0.5-ad0.0_MoL-8x8x32-t0.05-d0.2-l2-q512d0.0geglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu_local_ssl-n512-lwmi_loss:0.001-ddp2-b64-lr0.001-wu0-wd0.001-2024-11-16-fe5_ep180",
 }
 
 limit_eval_to_first_n = {
@@ -54,10 +54,12 @@ limit_eval_to_first_n = {
     "amzn-books": 8192,
 }
 
-def get_cmd(config_file, checkpoint, batch_size, algorithm, limit_eval_to_first_n):
-    cmd = f"CUDA_VISIBLE_DEVICES=1 python3 eval_from_checkpoint.py --eval_batch_size={batch_size} --limit_eval_to_first_n={limit_eval_to_first_n} "
+
+def get_cmd(config_file: str, checkpoint: str, batch_size: int, algorithm: str, limit_eval_to_first_n: int):
+    cmd = f"CUDA_VISIBLE_DEVICES=1 python3 eval_from_checkpoint.py --eval_batch_size={batch_size} --limit_eval_to_first_n={limit_eval_to_first_n} --include_eval_time "
     cmd += f"--gin_config_file={config_file} --top_k_method={algorithm}  --inference_from_ckpt={checkpoint} --master_port=12346"
     return cmd
+
 
 def run_eval(dataset, algorithm, batch_size):
     cmd = get_cmd(config_file = configs[dataset], checkpoint = checkpoints[dataset],
@@ -72,7 +74,8 @@ def run_eval(dataset, algorithm, batch_size):
     else:
         print(p.returncode, output, error)
     return result
-    
+
+
 def eval(dataset, batch_size):
     eval_data = []
     for algorithm in algorithms:
@@ -81,6 +84,7 @@ def eval(dataset, batch_size):
             eval_data.append("algorithm," + result[0])
         eval_data.append(algorithm + "," + result[1])
     return eval_data
+
 
 if __name__ == "__main__":
     #dataset = "amzn-books"

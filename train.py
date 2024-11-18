@@ -24,7 +24,7 @@ import os
 import random
 
 from datetime import date
-from typing import Optional
+from typing import Dict, Optional
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"  # Hide excessive tensorflow debug messages
 import sys
@@ -51,8 +51,8 @@ from modeling.sequential.autoregressive_losses import (
     BCELoss,
     InBatchNegativesSampler,
     LocalNegativesSampler,
-    SampledSoftmaxLoss,
 )
+from modeling.sequential.losses.sampled_softmax import SampledSoftmaxLoss
 from modeling.sequential.embedding_modules import EmbeddingModule, LocalEmbeddingModule
 from modeling.sequential.encoder_utils import get_sequential_encoder
 from modeling.sequential.features import movielens_seq_features_from_row
@@ -72,6 +72,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 flags.DEFINE_string("gin_config_file", None, "Path to the config file.")
 flags.DEFINE_integer("master_port", 12355, "Master port.")
+flags.DEFINE_string("restore_from_ckpt", None, "Continue training from specific checkpoint if set.")
 
 
 FLAGS = flags.FLAGS
@@ -90,13 +91,28 @@ def cleanup():
 
 
 @gin.configurable
+def get_weighted_loss(
+    main_loss: torch.Tensor,
+    aux_losses: Dict[str, torch.Tensor],
+    weights: Dict[str, float],
+) -> torch.Tensor:
+    weighted_loss = main_loss
+    for key, weight in weights.items():
+        cur_weighted_loss = aux_losses[key] * weight
+        weighted_loss = weighted_loss + cur_weighted_loss
+    return weighted_loss
+
+
+@gin.configurable
 def train_fn(
     rank: int,
     world_size: int,
     master_port: int,
+    restore_from_ckpt: str = "",
     dataset_name: str = "ml-20m",
     max_sequence_length: int = 200,
     positional_sampling_ratio: float = 1.0,
+    custom_date_str: str = "",
     local_batch_size: int = 128,
     eval_batch_size: int = 128,
     eval_user_max_batch_size: Optional[int] = None,
@@ -107,6 +123,7 @@ def train_fn(
     user_embedding_norm: str = "l2_norm",
     sampling_strategy: str = "in-batch",
     loss_module: str = "SampledSoftmaxLoss",
+    loss_weights: Dict[str, float] = {},
     num_negatives: int = 1,
     loss_activation_checkpoint: bool = False,
     item_l2_norm: bool = False,
@@ -130,6 +147,8 @@ def train_fn(
 ) -> None:
     # to enable more deterministic results.
     random.seed(random_seed)
+    torch.manual_seed(random_seed)
+    torch.cuda.manual_seed(random_seed)
     torch.backends.cuda.matmul.allow_tf32 = enable_tf32
     torch.backends.cudnn.allow_tf32 = enable_tf32
     logging.info(f"cuda.matmul.allow_tf32: {enable_tf32}")
@@ -232,6 +251,9 @@ def train_fn(
     else:
         raise ValueError(f"Unrecognized loss module {loss_module}.")
 
+    if loss_weights:
+        loss_debug_str += "-lw" + "-".join([f"{k}:{v}" for k, v in loss_weights.items()])
+
     # sampling
     if sampling_strategy == "in-batch":
         negatives_sampler = InBatchNegativesSampler(
@@ -271,7 +293,10 @@ def train_fn(
         weight_decay=weight_decay,
     )
 
-    date_str = date.today().strftime("%Y-%m-%d")
+    if not custom_date_str:
+        date_str = date.today().strftime("%Y-%m-%d")
+    else:
+        date_str = custom_date_str
     model_subfolder = f"{dataset_name}-l{max_sequence_length}"
     model_desc = (
         f"{model_subfolder}"
@@ -293,11 +318,20 @@ def train_fn(
         writer = None
         logging.info(f"Rank {rank}: disabling summary writer")
 
+    if restore_from_ckpt:
+        checkpoint = torch.load(restore_from_ckpt)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        opt.load_state_dict(checkpoint['optimizer_state_dict'])
+        epoch = checkpoint['epoch'] + 1  # do not overwrite checkpoint!
+        logging.info(f"Restored model and optimizer state from epoch {checkpoint['epoch']}'s ckpt: {restore_from_ckpt}. Setting cur_epoch to {epoch}")
+    else:
+        epoch = 0
+
     last_training_time = time.time()
-    torch.autograd.set_detect_anomaly(True)
+    # torch.autograd.set_detect_anomaly(True)
 
     batch_id = 0
-    for epoch in range(num_epochs):
+    while epoch < num_epochs:
         if train_data_sampler is not None:
             train_data_sampler.set_epoch(epoch)
         if eval_data_sampler is not None:
@@ -313,13 +347,6 @@ def train_fn(
             if (batch_id % eval_interval) == 0:
                 model.eval()
 
-                seq_features, target_ids, target_ratings = (
-                    movielens_seq_features_from_row(
-                        row,
-                        device=device,
-                        max_output_length=gr_output_length + 1,
-                    )
-                )
                 eval_state = get_eval_state(
                     model=model.module,
                     all_item_ids=dataset.all_item_ids,
@@ -392,14 +419,13 @@ def train_fn(
                 supervision_embeddings=input_embeddings[:, 1:, :],  # [B, N - 1, D]
                 supervision_weights=ar_mask.float(),
                 negatives_sampler=negatives_sampler,
-                aux_payloads=seq_features.past_payloads,
+                **seq_features.past_payloads,
             )  # [B, N]
             if rank == 0:
                 writer.add_scalar("losses/ar_loss", loss, batch_id)
 
             main_loss = loss.detach().clone()
-            for key, value in aux_losses.items():
-                loss += value
+            loss = get_weighted_loss(loss, aux_losses, weights=loss_weights)
             loss.backward()
 
             # Optional linear warmup.
@@ -421,7 +447,7 @@ def train_fn(
                     writer.add_scalar("loss/train", main_loss, batch_id)
                     writer.add_scalar("loss/incl_aux/train", loss, batch_id)
                     for key, value in aux_losses.items():
-                        writer.add_scalar(f"loss/{key}/train", value, batch_id)
+                        writer.add_scalar(f"loss/{key}/train", value.float(), batch_id)
                     writer.add_scalar("lr", lr, batch_id)
 
             opt.step()
@@ -505,6 +531,7 @@ def train_fn(
             torch.save(
                 {
                     "epoch": epoch,
+                    "batch_id": batch_id,
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": opt.state_dict(),
                 },
@@ -516,6 +543,7 @@ def train_fn(
             f"NDCG@10 {ndcg_10:.4f}, NDCG@50 {ndcg_50:.4f}, HR@10 {hr_10:.4f}, HR@50 {hr_50:.4f}, MRR {mrr:.4f}"
         )
         last_training_time = time.time()
+        epoch += 1
 
     if rank == 0:
         if writer is not None:
@@ -525,6 +553,7 @@ def train_fn(
         torch.save(
             {
                 "epoch": epoch,
+                "batch_id": batch_id,
                 "model_state_dict": model.state_dict(),
                 "optimizer_state_dict": opt.state_dict(),
             },
@@ -539,13 +568,14 @@ def mp_train_fn(
     world_size: int,
     master_port: int,
     gin_config_file: Optional[str],
+    restore_from_ckpt: str,
 ) -> None:
     if gin_config_file is not None:
         # Hack as absl doesn't support flag parsing inside multiprocessing.
         logging.info(f"Rank {rank}: loading gin config from {gin_config_file}")
         gin.parse_config_file(gin_config_file)
 
-    train_fn(rank, world_size, master_port)
+    train_fn(rank, world_size, master_port, restore_from_ckpt=restore_from_ckpt)
 
 
 def main(argv):
@@ -554,7 +584,7 @@ def main(argv):
     mp.set_start_method("forkserver")
     mp.spawn(
         mp_train_fn,
-        args=(world_size, FLAGS.master_port, FLAGS.gin_config_file),
+        args=(world_size, FLAGS.master_port, FLAGS.gin_config_file, FLAGS.restore_from_ckpt),
         nprocs=world_size,
         join=True,
     )

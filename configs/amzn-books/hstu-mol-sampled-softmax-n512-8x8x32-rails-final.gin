@@ -1,4 +1,4 @@
-# Efficient Retrieval with Learned Similarities (RAILS).
+# Retrieval with Learned Similarities (RAILS, https://arxiv.org/abs/2407.15462).
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,13 +14,13 @@
 #
 # Run this as:
 # mkdir -p logs/amzn-books-l50/
-# CUDA_VISIBLE_DEVICES=0,1 python3 train.py --gin_config_file=configs/amzn-books/hstu-mol-sampled-softmax-n512-8x8x32-rails-final.gin --master_port=12345 2>&1 | tee logs/amzn-books-l50/hstu-mol-sampled-softmax-n512-8x8x32-rails-final.log
+# PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True CUDA_VISIBLE_DEVICES=0,1 python3 train.py --gin_config_file=configs/amzn-books/hstu-mol-sampled-softmax-n512-8x8x32-rails-final.gin --master_port=12349 2>&1 | tee logs/amzn-books-l50/hstu-mol-sampled-softmax-n512-8x8x32-rails-finald.log
 #                                 | full/hr@1      full/hr@10     full/hr@50     full/hr@200    full/ndcg@10   full/ndcg@50   full/ndcg@200  full/mrr      
 #   HSTU (b=16, h=4, d=64, n=512) | 0.0102         0.0462         0.1042         0.1845         0.0256         0.0381         0.0502         0.0232        
-#               HSTU+MoL - final  | 0.0150 (47.1%) 0.0613 (33.0%) 0.1292 (24.0%) 0.2167 (17.5%) 0.0350 (37.3%) 0.0498 (30.7%) 0.0629 (25.5%) 0.0315 (36.4%)
-#
-# offline full eval:
-# eval @ epoch 115 (10858 iters, 694912 evaluated) in 3419.44s: NDCG@1 0.0150, NDCG@5 0.0289, NDCG@10 0.0350, NDCG@50 0.0498, NDCG@100 0.0564, NDCG@200 0.0629, HR@1 0.0150, HR@5 0.0422, HR@10 0.0613, HR@50 0.1293, HR@100 0.1699, HR@200 0.2168, MRR 0.0316
+#         HSTU+MoL (11/12)        | 0.0156         0.0631         0.1308         0.2173         0.0361         0.0509         0.0638         0.0324
+#         HSTU+MoL (11/16 rerun)  | 0.0155         0.0628         0.1297         0.2158         0.0360         0.0506         0.0635         0.0323
+
+# train_fn.custom_date_str = "2024-11-16"
 
 train_fn.dataset_name = "amzn-books"
 train_fn.max_sequence_length = 50
@@ -44,10 +44,10 @@ hstu_encoder.linear_dropout_rate = 0.5
 train_fn.eval_interval = 4000
 train_fn.num_epochs = 201
 train_fn.learning_rate = 1e-3
-train_fn.weight_decay = 0
+train_fn.weight_decay = 1e-3
 train_fn.num_warmup_steps = 0
 
-# train_fn.save_ckpt_every_n = 5
+train_fn.save_ckpt_every_n = 5
 
 train_fn.interaction_module_type = "MoL"
 train_fn.top_k_method = "MoLBruteForceTopK"
@@ -58,13 +58,11 @@ create_mol_interaction_module.dot_product_dimension = 32
 create_mol_interaction_module.dot_product_l2_norm = True
 
 # MoL query-side configuration
-create_mol_interaction_module.query_use_identity_fn = False
 create_mol_interaction_module.query_hidden_dim = 512
 create_mol_interaction_module.query_nonlinearity = "geglu"
 create_mol_interaction_module.query_dropout_rate = 0.0
 
 # MoL item-side configuration
-create_mol_interaction_module.item_use_identity_fn = False
 create_mol_interaction_module.item_dropout_rate = 0.1
 create_mol_interaction_module.item_hidden_dim = -1
 create_mol_interaction_module.item_nonlinearity = "geglu"
@@ -78,12 +76,11 @@ create_mol_interaction_module.gating_combination_type = "glu_silu"
 create_mol_interaction_module.softmax_dropout_rate = 0.2
 create_mol_interaction_module.temperature = 0.05
 
-# 799s per 4000 steps without these flags (w/ these flags OOMs?)
-# TODO triton
-# get_similarity_function.bf16_training = True
-# train_fn.eval_bf16 = True
+get_similarity_function.bf16_training = True
+train_fn.eval_bf16 = True
 
 train_fn.loss_module = "SampledSoftmaxLoss"
+train_fn.loss_weights = {"mi_loss": 0.001}
 train_fn.num_negatives = 512
 train_fn.temperature = 1.0
 

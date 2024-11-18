@@ -1,4 +1,4 @@
-# Efficient Retrieval with Learned Similarities (RAILS).
+# Retrieval with Learned Similarities (RAILS, https://arxiv.org/abs/2407.15462).
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,11 +14,12 @@
 #
 # Run this as:
 # mkdir -p logs/ml-1m-l200/
-# CUDA_VISIBLE_DEVICES=0 python3 train.py --gin_config_file=configs/ml-1m/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.gin --master_port=12346 2>&1 | tee logs/ml-1m-l200/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.log
+# CUDA_VISIBLE_DEVICES=1 python3 train.py --gin_config_file=configs/ml-1m/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.gin --master_port=12360 2>&1 | tee logs/ml-1m-l200/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.log
 #
-# Metrics (verified as of 06/19/2024)
-#      HSTU final           | 0.0815        0.3237        0.5886        0.7815        0.1856        0.2445        0.2738        0.1589
-#      HSTU +MoL RAIL final | 0.0875 (7.5%) 0.3412 (5.4%) 0.6013 (2.2%) 0.7877 (0.8%) 0.1979 (6.7%) 0.2556 (4.6%) 0.2840 (3.8%) 0.1692 (6.5%)
+# Metrics:
+#      HSTU final              | 0.0815        0.3237        0.5886        0.7815        0.1856        0.2445        0.2738        0.1589
+#      HSTU +MoL (10/07)       | 0.0884        0.346         0.6022        0.7935        0.2010        0.257         0.2867        0.1712
+#      HSTU +MoL (11/06 rerun) | 0.0876        0.3474        0.6023        0.7916        0.2000        0.2561        0.2849        0.1695
 
 train_fn.dataset_name = "ml-1m"
 train_fn.max_sequence_length = 200
@@ -51,7 +52,6 @@ create_mol_interaction_module.dot_product_dimension = 64
 create_mol_interaction_module.dot_product_l2_norm = True
 
 # MoL query-side configuration
-create_mol_interaction_module.query_use_identity_fn = False
 create_mol_interaction_module.query_hidden_dim = 512
 create_mol_interaction_module.query_dropout_rate = 0.0
 create_mol_interaction_module.query_nonlinearity = "swiglu"
@@ -60,7 +60,6 @@ create_mol_interaction_module.uid_embedding_hash_sizes = [6040]
 create_mol_interaction_module.uid_dropout_rate = 0.5
 
 # MoL item-side configuration
-create_mol_interaction_module.item_use_identity_fn = False
 create_mol_interaction_module.item_hidden_dim = -1
 create_mol_interaction_module.item_dropout_rate = 0.1
 create_mol_interaction_module.item_nonlinearity = "swiglu"
@@ -74,6 +73,7 @@ create_mol_interaction_module.gating_item_hidden_dim = 128
 create_mol_interaction_module.gating_combination_type = "glu_silu"
 
 train_fn.loss_module = "SampledSoftmaxLoss"
+train_fn.loss_weights = {"uid_embedding_l2_norm": 0.1, "mi_loss": 0.001}
 train_fn.num_negatives = 128
 
 train_fn.sampling_strategy = "local"

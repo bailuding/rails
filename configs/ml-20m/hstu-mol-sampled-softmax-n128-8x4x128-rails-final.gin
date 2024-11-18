@@ -1,4 +1,4 @@
-# Efficient Retrieval with Learned Similarities (RAILS).
+# Retrieval with Learned Similarities (RAILS).
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,10 +14,14 @@
 #
 # Run this as:
 # mkdir -p logs/ml-20m-l200/
-# CUDA_VISIBLE_DEVICES=1 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python3 train.py --gin_config_file=configs/ml-20m/hstu-mol-sampled-softmax-n128-8x4x128-rails-final.gin --master_port=12347 2>&1 | tee logs/ml-20m-l200/hstu-mol-sampled-softmax-n128-8x4x128-rails-final.log
-#                                 | hr@1           hr@10          hr@50          hr@200         ndcg@10        ndcg@50        ndcg@200       mrr           
-#        HSTU (b=16, h=8, dqk=32) | 0.0966         0.3555         0.6147         0.8063         0.2101         0.2675         0.2967         0.1805        
-#     HSTU-large + MoL RAIL final | 0.1014 (5.1%)  0.3661 (3.0%)  0.6234 (1.4%)  0.8116 (0.7%)  0.2181 (3.8%)  0.2753 (2.9%)  0.3039 (2.5%)  0.1876 (4.0%)
+# CUDA_VISIBLE_DEVICES=0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python3 train.py --gin_config_file=configs/ml-20m/hstu-mol-sampled-softmax-n128-8x4x128-rails-final.gin --master_port=12348 2>&1 | tee logs/ml-20m-l200/hstu-mol-sampled-softmax-n128-8x4x128-rails-final.log
+#
+# Metrics
+#                                         | hr@1           hr@10          hr@50          hr@200         ndcg@10        ndcg@50        ndcg@200       mrr           
+#     HSTU (b=16, h=8, dqk=32)            | 0.0966         0.3555         0.6147         0.8063         0.2101         0.2675         0.2967         0.1805
+#     HSTU + MoL RAIL (10/07)             | 0.1010         0.3698         0.6260         0.8132         0.2195         0.2763         0.3048         0.1881        
+#     HSTU + MoL RAIL (10/07 MI ablation) | 0.0994 (-1.5%) 0.3670 (-0.7%) 0.6241 (-0.3%) 0.8128 (-0.0%) 0.2176 (-0.9%) 0.2747 (-0.6%) 0.3034 (-0.4%) 0.1866 (-0.8%)
+#     HSTU + MoL RAIL (11/07 rerun)       | 0.1024         0.3695         0.6259         0.8106         0.2202         0.2772         0.3053         0.1892
 
 train_fn.dataset_name = "ml-20m"
 train_fn.max_sequence_length = 200
@@ -27,7 +31,7 @@ train_fn.eval_batch_size = 128
 train_fn.main_module = "HSTU"
 train_fn.dropout_rate = 0.2
 train_fn.user_embedding_norm = "layer_norm"
-train_fn.num_epochs = 101
+train_fn.num_epochs = 151
 train_fn.item_embedding_dim = 256
 
 hstu_encoder.num_blocks = 16
@@ -37,7 +41,7 @@ hstu_encoder.dqk = 32
 hstu_encoder.linear_dropout_rate = 0.2
 
 train_fn.learning_rate = 1e-3
-train_fn.weight_decay = 0
+train_fn.weight_decay = 1e-3
 train_fn.num_warmup_steps = 0
 
 # train_fn.save_ckpt_every_n = 5
@@ -51,17 +55,14 @@ create_mol_interaction_module.dot_product_dimension = 128
 create_mol_interaction_module.dot_product_l2_norm = True
 
 # MoL query-side configuration
-create_mol_interaction_module.query_use_identity_fn = False
 create_mol_interaction_module.query_dropout_rate = 0.0
 create_mol_interaction_module.query_hidden_dim = 512
 create_mol_interaction_module.query_nonlinearity = "swiglu"
 
 create_mol_interaction_module.uid_embedding_hash_sizes = [16384]
 create_mol_interaction_module.uid_dropout_rate = 0.8
-create_mol_interaction_module.uid_embedding_l2_weight_decay = 1e-1
 
 # MoL item-side configuration
-create_mol_interaction_module.item_use_identity_fn = False
 create_mol_interaction_module.item_dropout_rate = 0.1
 create_mol_interaction_module.item_hidden_dim = -1
 create_mol_interaction_module.item_nonlinearity = "swiglu"
@@ -80,6 +81,7 @@ create_mol_interaction_module.softmax_dropout_rate = 0.2
 # get_similarity_function.bf16_training = True
 
 train_fn.loss_module = "SampledSoftmaxLoss"
+train_fn.loss_weights = {"uid_embedding_l2_norm": 0.1, "mi_loss": 0.001}
 train_fn.num_negatives = 128
 
 train_fn.sampling_strategy = "local"
