@@ -24,7 +24,7 @@ train_fn.eval_batch_size = 128
 train_fn.main_module = "HSTU"
 train_fn.dropout_rate = 0.2
 train_fn.user_embedding_norm = "l2_norm"
-train_fn.num_epochs = 201
+train_fn.num_epochs = 151
 train_fn.item_embedding_dim = 256
 
 hstu_encoder.num_blocks = 16

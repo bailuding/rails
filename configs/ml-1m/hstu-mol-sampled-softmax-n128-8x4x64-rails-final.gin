@@ -16,7 +16,7 @@
 # mkdir -p logs/ml-1m-l200/
 # CUDA_VISIBLE_DEVICES=1 python3 train.py --gin_config_file=configs/ml-1m/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.gin --master_port=12360 2>&1 | tee logs/ml-1m-l200/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.log
 #
-# Metrics (verified as of 11/10/2024)
+# Metrics:
 #      HSTU final              | 0.0815        0.3237        0.5886        0.7815        0.1856        0.2445        0.2738        0.1589
 #      HSTU +MoL (10/07)       | 0.0884        0.346         0.6022        0.7935        0.2010        0.257         0.2867        0.1712
 #      HSTU +MoL (11/06 rerun) | 0.0876        0.3474        0.6023        0.7916        0.2000        0.2561        0.2849        0.1695

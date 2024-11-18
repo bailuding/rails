@@ -1,4 +1,4 @@
-# Efficient Retrieval with Learned Similarities (RAILS).
+# Retrieval with Learned Similarities (RAILS, https://arxiv.org/abs/2407.15462).
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ train_fn.dataset_name = "amzn-books"
 train_fn.max_sequence_length = 50
 train_fn.local_batch_size = 64
 train_fn.eval_batch_size = 64
-train_fn.eval_user_max_batch_size = 32  # avoids OOM
+train_fn.eval_user_max_batch_size = 32
 
 train_fn.main_module = "SASRec"
 train_fn.dropout_rate = 0.5
@@ -50,13 +50,11 @@ create_mol_interaction_module.dot_product_dimension = 32
 create_mol_interaction_module.dot_product_l2_norm = True
 
 # MoL query-side configuration
-create_mol_interaction_module.query_use_identity_fn = False
 create_mol_interaction_module.query_hidden_dim = 512
 create_mol_interaction_module.query_nonlinearity = "geglu"
 create_mol_interaction_module.query_dropout_rate = 0.0
 
 # MoL item-side configuration
-create_mol_interaction_module.item_use_identity_fn = False
 create_mol_interaction_module.item_dropout_rate = 0.1
 create_mol_interaction_module.item_hidden_dim = -1
 create_mol_interaction_module.item_nonlinearity = "geglu"
@@ -70,11 +68,11 @@ create_mol_interaction_module.gating_combination_type = "glu_silu"
 create_mol_interaction_module.softmax_dropout_rate = 0.2
 create_mol_interaction_module.temperature = 0.05
 
-# Needed for SASRec as it otherwise OOMs on A6000s
 get_similarity_function.bf16_training = True
 train_fn.eval_bf16 = True
 
 train_fn.loss_module = "SampledSoftmaxLoss"
+train_fn.loss_weights = {"mi_loss": 0.001}
 train_fn.num_negatives = 512
 
 train_fn.sampling_strategy = "local"

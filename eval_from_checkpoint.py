@@ -20,29 +20,29 @@ Example usage:
 *******************
 ****** ML-1M ******
 *******************
-Verified @ 11/10/2024
+Verified @ 11/18/2024
 Config: configs/ml-1m/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.gin
-Checkpoint: ckpts/ml-1m-l200/HSTU-b8-h2-dqk25-dv25-lsilud0.2-ad0.0_MoL-8x4x64-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu-uids6040d0.5_local_ssl-n128-lwuid_embedding_l2_norm:0.1-mi_loss:0.001-b128-lr0.001-wu0-wd0.001-2024-11-06_ep72
-CUDA_VISIBLE_DEVICES=1 python3 eval_from_checkpoint.py --eval_batch_size=32 --gin_config_file=configs/ml-1m/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.gin  --top_k_method=MoLBruteForceTopK --inference_from_ckpt=ckpts/ml-1m-l200/HSTU-b8-h2-dqk25-dv25-lsilud0.2-ad0.0_MoL-8x4x64-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu-uids6040d0.5_local_ssl-n128-lwuid_embedding_l2_norm:0.1-mi_loss:0.001-b128-lr0.001-wu0-wd0.001-2024-11-06_ep72
-eval @ epoch 72 (189 iters, 6048 evaluated) in 38.99s: NDCG@1 0.0874, NDCG@5 0.1660, NDCG@10 0.1999, NDCG@50 0.2560, NDCG@100 0.2726, HR@1 0.0874, HR@5 0.2422, HR@10 0.3474, HR@50 0.6023, HR@100 0.7041, MRR 0.1694
+CHECKPOINT=ckpts/ml-1m-l200/HSTU-b8-h2-dqk25-dv25-lsilud0.2-ad0.0_MoL-8x4x64-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu-uids6040d0.5_local_ssl-n128-lwuid_embedding_l2_norm:0.1-mi_loss:0.001-b128-lr0.001-wu0-wd0.001-2024-11-06_ep72
+CUDA_VISIBLE_DEVICES=0 python3 eval_from_checkpoint.py --eval_batch_size=32 --gin_config_file=configs/ml-1m/hstu-mol-sampled-softmax-n128-8x4x64-rails-final.gin  --top_k_method=MoLBruteForceTopK --inference_from_ckpt=$CHECKPOINT
+eval @ epoch 72 (189 iters, 6048 evaluated) in 30.00s: NDCG@1 0.0874, NDCG@5 0.1660, NDCG@10 0.1999, NDCG@50 0.2560, NDCG@100 0.2726, HR@1 0.0874, HR@5 0.2422, HR@10 0.3474, HR@50 0.6023, HR@100 0.7041, MRR 0.1694
 
 ********************
 ****** ML-20M ******
 ********************
-Verified @ 11/10/2024
+Verified @ 11/18/2024
 Config: configs/ml-20m/hstu-mol-sampled-softmax-n128-8x4x128-rails-final.gin
-Checkpoint: ckpts/ml-20m-l200/HSTU-b16-h8-dqk32-dv32-lsilud0.2-ad0.0_MoL-8x4x128-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.1-x-glu_silu-uids16384d0.8_local_ssl-n128-lwuid_embedding_l2_norm:0.1-mi_loss:0.001-b128-lr0.001-wu0-wd0.001-2024-11-07_ep145
-CUDA_VISIBLE_DEVICES=0 python3 eval_from_checkpoint.py --eval_batch_size=32 --gin_config_file=configs/ml-20m/hstu-mol-sampled-softmax-n128-8x4x128-rails-final.gin --top_k_method=MoLBruteForceTopK --inference_from_ckpt=ckpts/ml-20m-l200/HSTU-b16-h8-dqk32-dv32-lsilud0.2-ad0.0_MoL-8x4x128-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.1-x-glu_silu-uids16384d0.8_local_ssl-n128-lwuid_embedding_l2_norm:0.1-mi_loss:0.001-b128-lr0.001-wu0-wd0.001-2024-11-07_ep145
-eval @ epoch 145 (4328 iters, 138496 evaluated) in 128.34s: NDCG@1 0.1024, NDCG@5 0.1879, NDCG@10 0.2202, NDCG@50 0.2772, NDCG@100 0.2933, HR@1 0.1024, HR@5 0.2693, HR@10 0.3695, HR@50 0.6259, HR@100 0.7251, MRR 0.1892
+CHECKPOINT=ckpts/ml-20m-l200/HSTU-b16-h8-dqk32-dv32-lsilud0.2-ad0.0_MoL-8x4x128-t0.05-d0.2-l2-q512d0.0swiglu-id0.1-gq128-gi128d0.0-gqi128d0.1-x-glu_silu-uids16384d0.8_local_ssl-n128-lwuid_embedding_l2_norm:0.1-mi_loss:0.001-b128-lr0.001-wu0-wd0.001-2024-11-07_ep145
+CUDA_VISIBLE_DEVICES=0 python3 eval_from_checkpoint.py --eval_batch_size=32 --gin_config_file=configs/ml-20m/hstu-mol-sampled-softmax-n128-8x4x128-rails-final.gin --top_k_method=MoLBruteForceTopK --inference_from_ckpt=$CHECKPOINT
+eval @ epoch 145 (4328 iters, 138496 evaluated) in 119.99s: NDCG@1 0.1024, NDCG@5 0.1879, NDCG@10 0.2202, NDCG@50 0.2772, NDCG@100 0.2933, HR@1 0.1024, HR@5 0.2693, HR@10 0.3695, HR@50 0.6259, HR@100 0.7251, MRR 0.1892
 
 **************************
 ****** Amazon Books ******
 **************************
-Verified @ 11/10/2024
+Verified @ 11/18/2024
 Config: configs/amzn-books/hstu-mol-sampled-softmax-n512-8x8x32-rails-final.gin
-Checkpoint: ckpts/amzn-books-l50/HSTU-b16-h8-dqk8-dv8-lsilud0.5-ad0.0_MoL-8x8x32-t0.05-d0.2-l2-q512d0.0geglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu_local_ssl-n512-lwmi_loss:0.001-ddp2-b64-lr0.001-wu0-wd0-2024-11-06-fe5_ep160
-CUDA_VISIBLE_DEVICES=0 python3 eval_from_checkpoint.py --limit_eval_to_first_n=8192 --eval_batch_size=32 --gin_config_file=configs/amzn-books/hstu-mol-sampled-softmax-n512-8x8x32-rails-final.gin --top_k_method=MoLBruteForceTopK  --inference_from_ckpt=ckpts/amzn-books-l50/HSTU-b16-h8-dqk8-dv8-lsilud0.5-ad0.0_MoL-8x8x32-t0.05-d0.2-l2-q512d0.0geglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu_local_ssl-n512-lwmi_loss:0.001-ddp2-b64-lr0.001-wu0-wd0-2024-11-06-fe5_ep160
-eval @ epoch 160 (256 iters, 8192 evaluated) in 76.48s: NDCG@1 0.0172, NDCG@5 0.0309, NDCG@10 0.0372, NDCG@50 0.0532, NDCG@100 0.0588, HR@1 0.0172, HR@5 0.0438, HR@10 0.0634, HR@50 0.1366, HR@100 0.1711, MRR 0.0339
+CHECKPOINT=ckpts/amzn-books-l50/HSTU-b16-h8-dqk8-dv8-lsilud0.5-ad0.0_MoL-8x8x32-t0.05-d0.2-l2-q512d0.0geglu-id0.1-gq128-gi128d0.0-gqi128d0.0-x-glu_silu_local_ssl-n512-lwmi_loss:0.001-ddp2-b64-lr0.001-wu0-wd0.001-2024-11-16-fe5_ep180
+CUDA_VISIBLE_DEVICES=0 python3 eval_from_checkpoint.py --limit_eval_to_first_n=8192 --eval_batch_size=32 --gin_config_file=configs/amzn-books/hstu-mol-sampled-softmax-n512-8x8x32-rails-final.gin --top_k_method=MoLBruteForceTopK  --inference_from_ckpt=$CHECKPOINT
+eval @ epoch 180 (256 iters, 8192 evaluated) in 69.45s: NDCG@1 0.0178, NDCG@5 0.0322, NDCG@10 0.0386, NDCG@50 0.0539, NDCG@100 0.0604, HR@1 0.0178, HR@5 0.0468, HR@10 0.0668, HR@50 0.1370, HR@100 0.1775, MRR 0.0346
 """
 
 from dataclasses import dataclass
@@ -144,7 +144,7 @@ def train_fn(
     local_batch_size: int = 128,
     eval_batch_size: int = 128,
     eval_user_max_batch_size: Optional[int] = None,
-    main_module: str = "SASRec",
+    main_module: str = "HSTU",
     main_module_bf16: bool = False,
     dropout_rate: float = 0.2,
     linear_hidden_dim: int = 256,
@@ -282,7 +282,58 @@ def train_fn(
 
     date_str = date.today().strftime("%Y-%m-%d")
 
+    def _rename_state_dict(
+        state_dict: Dict,
+        rename_map: Dict[str, str],
+        strict: bool = False,
+    ) -> Dict:
+        """
+        Rename keys in the state dict according to the provided mapping.
+        
+        Args:
+            state_dict: Original state dict
+            rename_map: Dictionary mapping old keys to new keys
+            strict: If True, raises error when encountering unmapped keys
+            
+        Returns:
+            Dict: New state dict with renamed keys
+        """
+        new_state_dict = {}
+        unmapped_keys = []
+        
+        for old_key, value in state_dict.items():
+            print(f"old_key: {old_key}")
+            new_key = old_key
+            
+            # Check if any pattern in the rename map matches the current key
+            for old_pattern, new_pattern in rename_map.items():
+                if old_pattern in old_key:
+                    new_key = old_key.replace(old_pattern, new_pattern)
+                    print(f"Renaming state dict: {old_key} -> {new_key}")
+                    break
+            
+            if old_key == new_key and strict:
+                unmapped_keys.append(old_key)
+            
+            new_state_dict[new_key] = value
+            
+        if unmapped_keys and strict:
+            raise ValueError(
+                f"The following keys were not mapped: {unmapped_keys}"
+            )
+            
+        return new_state_dict
+    
     checkpoint = torch.load(inference_from_ckpt)
+    checkpoint['model_state_dict'] = _rename_state_dict(
+        checkpoint['model_state_dict'],
+        rename_map={
+            "module._ndp_module._item_proj_module.1.weight": "module._ndp_module._item_embeddings_fn._item_emb_proj_module.1.weight",
+            "module._ndp_module._item_proj_module.1.bias": "module._ndp_module._item_embeddings_fn._item_emb_proj_module.1.bias",
+        },
+        strict=False,
+    )
+
     model.load_state_dict(checkpoint['model_state_dict'])
     epoch = checkpoint['epoch']
     logging.info(f"Restored model and optimizer state from epoch {epoch}'s ckpt: {inference_from_ckpt}. Setting cur_epoch to {epoch}")

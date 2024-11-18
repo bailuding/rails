@@ -1,4 +1,4 @@
-# Efficient Retrieval with Learned Similarities (RAILS).
+# Retrieval with Learned Similarities (RAILS).
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,11 +14,7 @@
 #
 # Run this as:
 # mkdir -p logs/amzn-books-l50/
-# CUDA_VISIBLE_DEVICES=1 python3 train.py --gin_config_file=configs/amzn-books/hstu-sampled-softmax-n512-rails-final.gin --master_port=12346 2>&1 | tee logs/amzn-books-l50/hstu-sampled-softmax-n512-rails-final.log
-#                                 | full/hr@1      full/hr@10     full/hr@50     full/hr@200    full/ndcg@10   full/ndcg@50   full/ndcg@200  full/mrr      
-#   HSTU (b=16, h=4, d=64, n=512) | 0.0102         0.0462         0.1042         0.1845         0.0256         0.0381         0.0502         0.0232        
-#   HSTU+MoL run 1                | 0.0157 (53.9%) 0.0632 (37.1%) 0.1303 (25.0%) 0.2184 (18.4%) 0.0363 (42.4%) 0.0509 (33.6%) 0.0641 (27.9%) 0.0326 (41.1%)
-#   HSTU+MoL run 2                | 0.0150 (47.1%) 0.0613 (33.0%) 0.1292 (24.0%) 0.2167 (17.5%) 0.0350 (37.3%) 0.0498 (30.7%) 0.0629 (25.5%) 0.0315 (36.4%)
+# CUDA_VISIBLE_DEVICES=0 python3 train.py --gin_config_file=configs/amzn-books/hstu-sampled-softmax-n512-rails-final.gin --master_port=12346 2>&1 | tee logs/amzn-books-l50/hstu-sampled-softmax-n512-rails-final.log
 
 train_fn.dataset_name = "amzn-books"
 train_fn.max_sequence_length = 50

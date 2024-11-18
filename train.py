@@ -72,6 +72,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 flags.DEFINE_string("gin_config_file", None, "Path to the config file.")
 flags.DEFINE_integer("master_port", 12355, "Master port.")
+flags.DEFINE_string("restore_from_ckpt", None, "Continue training from specific checkpoint if set.")
 
 
 FLAGS = flags.FLAGS
@@ -107,9 +108,11 @@ def train_fn(
     rank: int,
     world_size: int,
     master_port: int,
+    restore_from_ckpt: str = "",
     dataset_name: str = "ml-20m",
     max_sequence_length: int = 200,
     positional_sampling_ratio: float = 1.0,
+    custom_date_str: str = "",
     local_batch_size: int = 128,
     eval_batch_size: int = 128,
     eval_user_max_batch_size: Optional[int] = None,
@@ -290,7 +293,10 @@ def train_fn(
         weight_decay=weight_decay,
     )
 
-    date_str = date.today().strftime("%Y-%m-%d")
+    if not custom_date_str:
+        date_str = date.today().strftime("%Y-%m-%d")
+    else:
+        date_str = custom_date_str
     model_subfolder = f"{dataset_name}-l{max_sequence_length}"
     model_desc = (
         f"{model_subfolder}"
@@ -312,11 +318,20 @@ def train_fn(
         writer = None
         logging.info(f"Rank {rank}: disabling summary writer")
 
+    if restore_from_ckpt:
+        checkpoint = torch.load(restore_from_ckpt)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        opt.load_state_dict(checkpoint['optimizer_state_dict'])
+        epoch = checkpoint['epoch'] + 1  # do not overwrite checkpoint!
+        logging.info(f"Restored model and optimizer state from epoch {checkpoint['epoch']}'s ckpt: {restore_from_ckpt}. Setting cur_epoch to {epoch}")
+    else:
+        epoch = 0
+
     last_training_time = time.time()
     # torch.autograd.set_detect_anomaly(True)
 
     batch_id = 0
-    for epoch in range(num_epochs):
+    while epoch < num_epochs:
         if train_data_sampler is not None:
             train_data_sampler.set_epoch(epoch)
         if eval_data_sampler is not None:
@@ -516,6 +531,7 @@ def train_fn(
             torch.save(
                 {
                     "epoch": epoch,
+                    "batch_id": batch_id,
                     "model_state_dict": model.state_dict(),
                     "optimizer_state_dict": opt.state_dict(),
                 },
@@ -527,6 +543,7 @@ def train_fn(
             f"NDCG@10 {ndcg_10:.4f}, NDCG@50 {ndcg_50:.4f}, HR@10 {hr_10:.4f}, HR@50 {hr_50:.4f}, MRR {mrr:.4f}"
         )
         last_training_time = time.time()
+        epoch += 1
 
     if rank == 0:
         if writer is not None:
@@ -536,6 +553,7 @@ def train_fn(
         torch.save(
             {
                 "epoch": epoch,
+                "batch_id": batch_id,
                 "model_state_dict": model.state_dict(),
                 "optimizer_state_dict": opt.state_dict(),
             },
@@ -550,13 +568,14 @@ def mp_train_fn(
     world_size: int,
     master_port: int,
     gin_config_file: Optional[str],
+    restore_from_ckpt: str,
 ) -> None:
     if gin_config_file is not None:
         # Hack as absl doesn't support flag parsing inside multiprocessing.
         logging.info(f"Rank {rank}: loading gin config from {gin_config_file}")
         gin.parse_config_file(gin_config_file)
 
-    train_fn(rank, world_size, master_port)
+    train_fn(rank, world_size, master_port, restore_from_ckpt=restore_from_ckpt)
 
 
 def main(argv):
@@ -565,7 +584,7 @@ def main(argv):
     mp.set_start_method("forkserver")
     mp.spawn(
         mp_train_fn,
-        args=(world_size, FLAGS.master_port, FLAGS.gin_config_file),
+        args=(world_size, FLAGS.master_port, FLAGS.gin_config_file, FLAGS.restore_from_ckpt),
         nprocs=world_size,
         join=True,
     )
