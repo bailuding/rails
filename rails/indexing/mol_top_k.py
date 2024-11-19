@@ -13,7 +13,8 @@
 # limitations under the License.
 
 """
-Defines exact- and approximate- Top-K modules for Mixture-of-Logits (MoL).
+Defines exact- and approximate- Top-K modules for Mixture-of-Logits (MoL),
+discussed in Retrieval with Learned Similarities (https://arxiv.org/abs/2407.15462).
 """
 
 from typing import Dict, Tuple
@@ -69,9 +70,8 @@ class MoLTopKModule(TopKModule):
                         0
                     ]  # (X, D) -> (X, P_X, D_P)
                 )
-                .permute(1, 0, 2)
                 .to(component_level_item_embeddings_dtype)
-            )  # (X, P_X, D_P) -> (P_X, X, D_P)
+            )
 
         self._item_ids: torch.Tensor = (
             item_ids if not flatten_item_ids_and_embeddings else item_ids.squeeze(0)
@@ -138,10 +138,10 @@ class MoLNaiveTopK(MoLTopKModule):
     learned similarity scores.
 
     The algorithm works as follows:
-    • Retrieve the top 𝐾 for each set of embeddings by their dot similarity scores
-    • Takes the union of the retrieved items as 𝐼
-    • Retrieve the dot similarity scores of all the items in 𝐼 for each embedding set
-    • Calculate the learned similarity score for all the items in 𝐼 .
+    • Retrieve the top 𝐾 for each set of embeddings by their dot similarity scores;
+    • Takes the union of the retrieved items as 𝐼;
+    • Retrieve the dot similarity scores of all the items in 𝐼 for each embedding set;
+    • Calculate the learned similarity score for all the items in 𝐼;
     • Returns the top 𝐾 items from 𝐼 with the highest learned similarity score.
     """
 
@@ -168,22 +168,22 @@ class MoLNaiveTopK(MoLTopKModule):
             flatten_item_ids_and_embeddings=True,
             keep_component_level_item_embeddings=True,
         )
-        K_I, N, D_P = self._mol_item_embeddings.size()
+        N, P_X, D_P = self._mol_item_embeddings.size()
         self._k_per_group: int = k_per_group
-        self._mol_item_embeddings_t: torch.Tensor = self._mol_item_embeddings.reshape(
+        self._mol_item_embeddings_t: torch.Tensor = self._mol_item_embeddings.permute(1, 0, 2).reshape(
             -1, D_P
         ).transpose(
             0, 1
-        )  # (D_P, K_I * N)
-        self._use_faiss = use_faiss
+        )  # (N, P_X, D_P) -> (P_X, N, D_P) -> (P_X * N, D_P) -> (D_P, P_X * N)
+        self._use_faiss: bool = use_faiss
         if use_faiss:
             import faiss
             self._gpu_resources = faiss.StandardGpuResources()
             self._gpu_indexes = []
             nlist = 100
-            for i in range(K_I):
+            for i in range(P_X):
                 mol_item_embeddings_np = (
-                    self._mol_item_embeddings[i]
+                    self._mol_item_embeddings[:, i, :]
                     .to(torch.float32)
                     .cpu()
                     .numpy()
@@ -210,24 +210,25 @@ class MoLNaiveTopK(MoLTopKModule):
         **kwargs,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        query_embeddings: (B, X, D) if mol_module._apply_query_embeddings_fn is True,
-            (B, X, P_Q, D_P) otherwise.
-        k: int. final top-k to return.
-        sorted: bool. whether to sort final top-k results or not.
-        **kwargs: Implementation-specific keys/values.
+        Args:
+            query_embeddings: (B, X, D) if mol_module._apply_query_embeddings_fn is True,
+                (B, X, P_Q, D_P) otherwise.
+            k: int. final top-k to return.
+            sorted: bool. whether to sort final top-k results or not.
+            **kwargs: Implementation-specific keys/values.
         """
         B: int = query_embeddings.size(0)
         mol_query_embeddings, _ = self.mol_module.get_query_component_embeddings(
             query_embeddings,
             decoupled_inference=True,
             **kwargs,
-        )  # (B, K_Q, D)
-        _, K_Q, _ = mol_query_embeddings.size()
-        K_I, N, _ = self._mol_item_embeddings.size()
+        )  # (B, P_Q, D)
+        _, P_Q, _ = mol_query_embeddings.size()
+        N, P_X, _ = self._mol_item_embeddings.size()
         all_indices = []
         if self._use_faiss:
-            for i in range(K_Q):
-                for j in range(K_I):
+            for i in range(P_Q):
+                for j in range(P_X):
                     _, ij_indices = self._gpu_indexes[j].search(
                         mol_query_embeddings[:, i, :].cpu().to(torch.float32).numpy(),
                         self._k_per_group,
@@ -240,20 +241,20 @@ class MoLNaiveTopK(MoLTopKModule):
                         )
                     )
         else:
-            for i in range(K_Q):
+            for i in range(P_Q):
                 cur_i_sim_values = torch.mm(
                     mol_query_embeddings[:, i, :].to(self._mol_item_embeddings_t.dtype),
                     self._mol_item_embeddings_t,
-                ).view(B * K_I, N)
+                ).view(B * P_X, N)
                 _, cur_i_top_k_indices = torch.topk(
                     cur_i_sim_values, k=self._k_per_group, dim=1, sorted=False
                 )
-                all_indices.append(cur_i_top_k_indices.view(B, K_I * self._k_per_group))
+                all_indices.append(cur_i_top_k_indices.view(B, P_X * self._k_per_group))
 
         sorted_all_indices, _ = torch.sort(torch.cat(all_indices, dim=1), dim=1)
 
         # MoL
-        k = K_Q * K_I * self._k_per_group
+        k = P_Q * P_X * self._k_per_group
         filtered_item_embeddings = self._item_embeddings[
             sorted_all_indices.view(-1)
         ].reshape(
@@ -268,7 +269,7 @@ class MoLNaiveTopK(MoLTopKModule):
             filtered_item_embeddings,
             **kwargs,
         )
-        # (B, K_Q * K_I * self._k_per_group).
+        # (B, P_Q * P_X * self._k_per_group).
         # Mask out duplicate elements across multiple top-k groups, given input is sorted.
         candidate_is_valid = torch.cat(
             [
@@ -301,7 +302,7 @@ class MoLAvgTopK(MoLTopKModule):
         Args:
             mol_module: MoLSimilarity.
             item_embeddings: (1, N, D).
-            mol_item_embeddings: (K_I, N, D_P).
+            item_ids: (1, N,).
             avg_top_k: int.
         """
         super().__init__(
@@ -311,14 +312,14 @@ class MoLAvgTopK(MoLTopKModule):
             flatten_item_ids_and_embeddings=True,
             keep_component_level_item_embeddings=True,
         )
-        P_X, _, D_P = self._mol_item_embeddings.size()
+        _, P_X, D_P = self._mol_item_embeddings.size()
         self._P_X: int = P_X
         self._D_P: int = D_P
         self._avg_mol_item_embeddings_t = (
-            self._mol_item_embeddings.sum(0) / self._P_X
+            self._mol_item_embeddings.sum(1) / self._P_X
         ).transpose(
             0, 1
-        )  # (P_X, X, D') -> (X, D') -> (D', X)
+        )  # (X, P_X, D') -> (X, D') -> (D', X)
         self._avg_top_k: int = avg_top_k
 
     def forward(
@@ -355,7 +356,7 @@ class MoLAvgTopK(MoLTopKModule):
             avg_filtered_item_embeddings = self._item_embeddings[
                 avg_sim_top_k_indices
             ].view(
-                (B, self._avg_top_k, self._P_X, self._D_P)
+                (B, self._avg_top_k, -1)
             )
 
         with record_function("filtered_scoring"):
@@ -411,7 +412,7 @@ class MoLAvgTopK(MoLTopKModule):
             **kwargs,
         )  # (B, P_Q, D_P)
         _, P_Q, D_P = mol_query_embeddings.size()
-        P_X, N, _ = self._mol_item_embeddings.size()
+        N, P_X, _ = self._mol_item_embeddings.size()
 
         avg_query_embeddings = mol_query_embeddings.sum(1) / P_Q
         if avg_query_embeddings.dtype != self._avg_mol_item_embeddings_t.dtype:
@@ -438,7 +439,7 @@ class MoLCombTopK(MoLTopKModule):
         Args:
             mol_module: MoLSimilarity.
             item_embeddings: (1, N, D).
-            mol_item_embeddings: (K_I, N, D').
+            mol_item_embeddings: (P_X, N, D').
             avg_top_k: int.
         """
         super().__init__(
@@ -449,17 +450,18 @@ class MoLCombTopK(MoLTopKModule):
             keep_component_level_item_embeddings=True,
         )
         # Initialization for naive top K
-        P_X, _, D_P = self._mol_item_embeddings.size()
-        self._mol_item_embeddings_t: torch.Tensor = self._mol_item_embeddings.reshape(
+        _, P_X, D_P = self._mol_item_embeddings.size()
+        self._mol_item_embeddings_t: torch.Tensor = self._mol_item_embeddings.permute(1, 0, 2).reshape(
             -1, D_P
         ).transpose(
             0, 1
-        )  # (D_P, K_I * N)
+        )  # (D_P, P_X * N)
         self._k_per_group: int = k_per_group
         self._avg_top_k: int = avg_top_k
         self._avg_top_k_module = MoLAvgTopK(
             mol_module, item_embeddings, item_ids, avg_top_k
         )
+        self._item_embeddings_size: Tuple[int, ...] = self._item_embeddings.size()[1:]
 
     def forward(
         self,
@@ -481,9 +483,13 @@ class MoLCombTopK(MoLTopKModule):
             query_embeddings,
             decoupled_inference=True,
             **kwargs,
-        )  # (B, K_Q, D)
+        )  # (B, P_Q, D)
+        if mol_query_embeddings.dtype != self._mol_item_embeddings_t.dtype:
+            mol_query_embeddings = mol_query_embeddings.to(
+                self._mol_item_embeddings_t.dtype
+            )
         _, P_Q, _ = mol_query_embeddings.size()
-        P_X, X, _ = self._mol_item_embeddings.size()
+        X, P_X, _ = self._mol_item_embeddings.size()
         all_indices = []
         for i in range(P_Q):
             cur_i_sim_values = torch.mm(
@@ -512,7 +518,7 @@ class MoLCombTopK(MoLTopKModule):
                 B,
                 k,
             )
-            + self._item_embeddings.size()[1:]
+            + self._item_embeddings_size
         )
         candidate_scores, _ = self.mol_module(
             query_embeddings,
