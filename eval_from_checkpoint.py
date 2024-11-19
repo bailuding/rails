@@ -96,6 +96,7 @@ flags.DEFINE_string("top_k_method", None, "Top-K method.")
 flags.DEFINE_integer("limit_eval_to_first_n", 0, "Limit eval to first N items.")
 flags.DEFINE_integer("eval_batch_size", 64, "Batch size for evals.")
 flags.DEFINE_boolean("include_eval_time", False, "Please set this to False for strict accuracy checks.")
+flags.DEFINE_string("eval_dtype", "", "If non-empty, run eval in this dtype.")
 
 
 FLAGS = flags.FLAGS
@@ -139,6 +140,7 @@ def train_fn(
     top_k_method: str,
     limit_eval_to_first_n: int,
     include_eval_time: bool,
+    eval_dtype: str,
     dataset_name: str = "ml-20m",
     max_sequence_length: int = 200,
     local_batch_size: int = 128,
@@ -177,8 +179,9 @@ def train_fn(
     random.seed(42)
     torch.manual_seed(42)
 
-    #main_module_bf16 = True
-    logging.info("Enabling eval in bf16 to speed up.")
+    if eval_dtype == "bf16":
+        logging.info("Enabling eval in bf16 to speed up.")
+
     torch.backends.cuda.matmul.allow_tf32 = enable_tf32
     torch.backends.cudnn.allow_tf32 = enable_tf32
 
@@ -276,7 +279,7 @@ def train_fn(
     # create model and move it to GPU with id rank
     device = rank
     model = model.to(device)
-    if main_module_bf16:
+    if main_module_bf16 or eval_dtype == "bf16":
         model = model.to(torch.bfloat16)
     model = DDP(model, device_ids=[rank], broadcast_buffers=False)
 
@@ -346,6 +349,7 @@ def train_fn(
         # eval per epoch
         eval_dict_all = None
         eval_start_time = time.time()
+        float_dtype = torch.bfloat16 if main_module_bf16 or eval_bf16 or eval_dtype == "bf16" else None
         eval_state = get_eval_state(
             model=model.module,
             all_item_ids=dataset.all_item_ids,
@@ -357,7 +361,7 @@ def train_fn(
                 item_ids=item_ids,
             ),
             device=device, 
-            float_dtype=torch.bfloat16 if main_module_bf16 or eval_bf16 else None,
+            float_dtype=float_dtype,
         )
         for eval_iter, row in enumerate(iter(test_data_loader)):
             seq_features, target_ids, target_ratings = movielens_seq_features_from_row(row, device=device, max_output_length=gr_output_length + 1)
@@ -366,7 +370,7 @@ def train_fn(
                 user_max_batch_size=eval_user_max_batch_size,
                 include_full_matrices=False,
                 include_eval_time=include_eval_time,
-                dtype=torch.bfloat16 if main_module_bf16 or eval_bf16 else None,
+                dtype=float_dtype,
             )
 
             if eval_dict_all is None:
@@ -428,6 +432,7 @@ def mp_train_fn(
     limit_eval_to_first_n: int,
     eval_batch_size: int,
     include_eval_time: bool,
+    eval_dtype: str,
 ) -> None:
     if gin_config_file is not None:
         # Hack as absl doesn't support flag parsing inside multiprocessing.
@@ -442,6 +447,7 @@ def mp_train_fn(
         eval_batch_size=eval_batch_size,
         eval_user_max_batch_size=eval_batch_size,
         include_eval_time=include_eval_time,
+        eval_dtype=eval_dtype,
     )
 
 def main(argv):
@@ -450,7 +456,17 @@ def main(argv):
 
     mp.set_start_method('forkserver')
     mp.spawn(mp_train_fn,
-             args=(world_size, FLAGS.master_port, FLAGS.gin_config_file, FLAGS.inference_from_ckpt, FLAGS.top_k_method, FLAGS.limit_eval_to_first_n, FLAGS.eval_batch_size, FLAGS.include_eval_time),
+             args=(
+                world_size,
+                FLAGS.master_port,
+                FLAGS.gin_config_file,
+                FLAGS.inference_from_ckpt,
+                FLAGS.top_k_method,
+                FLAGS.limit_eval_to_first_n,
+                FLAGS.eval_batch_size,
+                FLAGS.include_eval_time,
+                FLAGS.eval_dtype,
+             ),
              nprocs=world_size,
              join=True)
 

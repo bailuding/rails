@@ -89,17 +89,23 @@ limit_eval_to_first_n = {
 }
 
 
-def get_cmd(config_file: str, checkpoint: str, batch_size: int, algorithm: str, limit_eval_to_first_n: int) -> str:
-    cmd = f"CUDA_VISIBLE_DEVICES=1 python3 eval_from_checkpoint.py --eval_batch_size={batch_size} --limit_eval_to_first_n={limit_eval_to_first_n} --include_eval_time "
+def get_cmd(config_file: str, checkpoint: str, batch_size: int, algorithm: str, limit_eval_to_first_n: int, eval_dtype: str) -> str:
+    cmd = f"CUDA_VISIBLE_DEVICES=1 python3 eval_from_checkpoint.py --eval_batch_size={batch_size} --limit_eval_to_first_n={limit_eval_to_first_n} "
+    cmd += f"--include_eval_time --eval_dtype={eval_dtype} "
     cmd += f"--gin_config_file={config_file} --top_k_method={algorithm}  --inference_from_ckpt={checkpoint} --master_port=12346"
     return cmd
 
 
 def run_eval(dataset: str, algorithm: str, batch_size: int):
-    cmd = get_cmd(config_file = configs[dataset], checkpoint = checkpoints[dataset],
-                    batch_size = batch_size, algorithm = algorithm, limit_eval_to_first_n = limit_eval_to_first_n[dataset])
+    cmd = get_cmd(
+        config_file=configs[dataset],
+        checkpoint=checkpoints[dataset],
+        batch_size=batch_size, algorithm=algorithm,
+        limit_eval_to_first_n=limit_eval_to_first_n[dataset],
+        eval_dtype="bf16",
+    )
     print(cmd)
-    p = subprocess.Popen(cmd, shell = True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = p.communicate()
     result = None
     if p.returncode == 0:
@@ -121,9 +127,9 @@ def eval(dataset: str, batch_size: int) -> List[str]:
 
 
 if __name__ == "__main__":
-    #dataset = "amzn-books"
+    dataset = "amzn-books"
     #dataset = "ml-1m"
-    dataset = "ml-20m"
+    #dataset = "ml-20m"
     batch_size = 32
     result = eval(dataset=dataset, batch_size=batch_size)
     print(f"================{dataset}===============")
