@@ -60,18 +60,17 @@ class MoLTopKModule(TopKModule):
 
         if keep_component_level_item_embeddings:
             self._mol_item_embeddings: torch.Tensor = (
-                (
-                    mol_module.get_item_component_embeddings(
+                mol_module.get_item_component_embeddings(
+                    (
                         self._item_embeddings.squeeze(0)
                         if not flatten_item_ids_and_embeddings
-                        else self._item_embeddings,
-                        decoupled_inference=True,
-                    )[
-                        0
-                    ]  # (X, D) -> (X, P_X, D_P)
-                )
-                .to(component_level_item_embeddings_dtype)
-            )
+                        else self._item_embeddings
+                    ),
+                    decoupled_inference=True,
+                )[
+                    0
+                ]  # (X, D) -> (X, P_X, D_P)
+            ).to(component_level_item_embeddings_dtype)
 
         self._item_ids: torch.Tensor = (
             item_ids if not flatten_item_ids_and_embeddings else item_ids.squeeze(0)
@@ -170,14 +169,13 @@ class MoLNaiveTopK(MoLTopKModule):
         )
         N, P_X, D_P = self._mol_item_embeddings.size()
         self._k_per_group: int = k_per_group
-        self._mol_item_embeddings_t: torch.Tensor = self._mol_item_embeddings.permute(1, 0, 2).reshape(
-            -1, D_P
-        ).transpose(
-            0, 1
+        self._mol_item_embeddings_t: torch.Tensor = (
+            self._mol_item_embeddings.permute(1, 0, 2).reshape(-1, D_P).transpose(0, 1)
         )  # (N, P_X, D_P) -> (P_X, N, D_P) -> (P_X * N, D_P) -> (D_P, P_X * N)
         self._use_faiss: bool = use_faiss
         if use_faiss:
             import faiss
+
             self._gpu_resources = faiss.StandardGpuResources()
             self._gpu_indexes = []
             nlist = 100
@@ -354,15 +352,15 @@ class MoLAvgTopK(MoLTopKModule):
                 mol_query_embeddings.sum(1).to(self._avg_mol_item_embeddings_t.dtype),
                 self._avg_mol_item_embeddings_t,
             )  # (B, D_P) * (D_P, X)
-            _, avg_sim_top_k_indices = torch.topk(avg_sim_values, k=self._avg_top_k, dim=1, sorted=False)
+            _, avg_sim_top_k_indices = torch.topk(
+                avg_sim_values, k=self._avg_top_k, dim=1, sorted=False
+            )
 
         with record_function("avg_topk_selection"):
             # queries averaged results
             avg_filtered_item_embeddings = self._item_embeddings[
                 avg_sim_top_k_indices
-            ].view(
-                (B, self._avg_top_k, -1)
-            )
+            ].view((B, self._avg_top_k, -1))
 
         with record_function("filtered_scoring"):
             candidate_scores, _ = self.mol_module(
@@ -425,7 +423,9 @@ class MoLAvgTopK(MoLTopKModule):
         avg_sim_values = torch.mm(
             avg_query_embeddings, self._avg_mol_item_embeddings_t
         )  # (B, D_P) * (D_P, X)
-        _, avg_sim_top_k_indices = torch.topk(avg_sim_values, k=self._avg_top_k, dim=1, sorted=sorted)
+        _, avg_sim_top_k_indices = torch.topk(
+            avg_sim_values, k=self._avg_top_k, dim=1, sorted=sorted
+        )
         return avg_sim_top_k_indices
 
 
@@ -454,10 +454,8 @@ class MoLCombTopK(MoLTopKModule):
         )
         # Initialization for naive top K
         _, P_X, D_P = self._mol_item_embeddings.size()
-        self._mol_item_embeddings_t: torch.Tensor = self._mol_item_embeddings.permute(1, 0, 2).reshape(
-            -1, D_P
-        ).transpose(
-            0, 1
+        self._mol_item_embeddings_t: torch.Tensor = (
+            self._mol_item_embeddings.permute(1, 0, 2).reshape(-1, D_P).transpose(0, 1)
         )  # (D_P, P_X * N)
         self._k_per_group: int = k_per_group
         self._avg_top_k: int = avg_top_k
@@ -494,10 +492,13 @@ class MoLCombTopK(MoLTopKModule):
         _, P_Q, _ = mol_query_embeddings.size()
         X, P_X, _ = self._mol_item_embeddings.size()
         all_indices = []
-        mol_query_component_embeddings = torch.tensor_split(mol_query_embeddings, P_Q, dim=1)
+        mol_query_component_embeddings = torch.tensor_split(
+            mol_query_embeddings, P_Q, dim=1
+        )
         for i in range(P_Q):
             cur_i_sim_values = torch.mm(
-                mol_query_component_embeddings[i].squeeze(1), self._mol_item_embeddings_t
+                mol_query_component_embeddings[i].squeeze(1),
+                self._mol_item_embeddings_t,
             ).view(B * P_X, X)
             _, cur_i_top_k_indices = torch.topk(
                 cur_i_sim_values, k=self._k_per_group, dim=1, sorted=False

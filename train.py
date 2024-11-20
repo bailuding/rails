@@ -72,7 +72,9 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 flags.DEFINE_string("gin_config_file", None, "Path to the config file.")
 flags.DEFINE_integer("master_port", 12355, "Master port.")
-flags.DEFINE_string("restore_from_ckpt", None, "Continue training from specific checkpoint if set.")
+flags.DEFINE_string(
+    "restore_from_ckpt", None, "Continue training from specific checkpoint if set."
+)
 
 
 FLAGS = flags.FLAGS
@@ -252,7 +254,9 @@ def train_fn(
         raise ValueError(f"Unrecognized loss module {loss_module}.")
 
     if loss_weights:
-        loss_debug_str += "-lw" + "-".join([f"{k}:{v}" for k, v in loss_weights.items()])
+        loss_debug_str += "-lw" + "-".join(
+            [f"{k}:{v}" for k, v in loss_weights.items()]
+        )
 
     # sampling
     if sampling_strategy == "in-batch":
@@ -320,10 +324,12 @@ def train_fn(
 
     if restore_from_ckpt:
         checkpoint = torch.load(restore_from_ckpt)
-        model.load_state_dict(checkpoint['model_state_dict'])
-        opt.load_state_dict(checkpoint['optimizer_state_dict'])
-        epoch = checkpoint['epoch'] + 1  # do not overwrite checkpoint!
-        logging.info(f"Restored model and optimizer state from epoch {checkpoint['epoch']}'s ckpt: {restore_from_ckpt}. Setting cur_epoch to {epoch}")
+        model.load_state_dict(checkpoint["model_state_dict"])
+        opt.load_state_dict(checkpoint["optimizer_state_dict"])
+        epoch = checkpoint["epoch"] + 1  # do not overwrite checkpoint!
+        logging.info(
+            f"Restored model and optimizer state from epoch {checkpoint['epoch']}'s ckpt: {restore_from_ckpt}. Setting cur_epoch to {epoch}"
+        )
     else:
         epoch = 0
 
@@ -358,7 +364,9 @@ def train_fn(
                         item_ids=item_ids,
                     ),
                     device=device,
-                    float_dtype=torch.bfloat16 if main_module_bf16 or eval_bf16 else None,
+                    float_dtype=(
+                        torch.bfloat16 if main_module_bf16 or eval_bf16 else None
+                    ),
                 )
                 eval_dict = eval_metrics_v2_from_tensors(
                     eval_state,
@@ -584,7 +592,12 @@ def main(argv):
     mp.set_start_method("forkserver")
     mp.spawn(
         mp_train_fn,
-        args=(world_size, FLAGS.master_port, FLAGS.gin_config_file, FLAGS.restore_from_ckpt),
+        args=(
+            world_size,
+            FLAGS.master_port,
+            FLAGS.gin_config_file,
+            FLAGS.restore_from_ckpt,
+        ),
         nprocs=world_size,
         join=True,
     )

@@ -56,7 +56,7 @@ class DotProductSimilarity(SimilarityModule):
             # (B * r, D) x (B, X, D).
             return (
                 torch.bmm(
-                    query_embeddings.view(B, -1, D), item_embeddings.permute(0, 2, 1)
+                    query_embeddings.view(B_I, -1, D), item_embeddings.permute(0, 2, 1)
                 ).view(-1, X),
                 {},
             )

@@ -27,13 +27,13 @@ default_algorithms = [
     "MoLAvgTopK200",
     "MoLAvgTopK500",
     "MoLAvgTopK1000",
-    #"MoLAvgTopK2500",
-    #"MoLAvgTopK3000",
+    # "MoLAvgTopK2500",
+    # "MoLAvgTopK3000",
     "MoLAvgTopK2000",
     "MoLAvgTopK4000",
     "MoLCombTopK5_200",
     "MoLCombTopK50_500",
-    #"MoLCombTopK50_1000",
+    # "MoLCombTopK50_1000",
     "MoLCombTopK100_1000",
 ]
 
@@ -89,7 +89,14 @@ limit_eval_to_first_n = {
 }
 
 
-def get_cmd(config_file: str, checkpoint: str, batch_size: int, algorithm: str, limit_eval_to_first_n: int, eval_dtype: str) -> str:
+def get_cmd(
+    config_file: str,
+    checkpoint: str,
+    batch_size: int,
+    algorithm: str,
+    limit_eval_to_first_n: int,
+    eval_dtype: str,
+) -> str:
     cmd = f"CUDA_VISIBLE_DEVICES=1 python3 eval_from_checkpoint.py --eval_batch_size={batch_size} --limit_eval_to_first_n={limit_eval_to_first_n} "
     cmd += f"--include_eval_time --eval_dtype={eval_dtype} --eval_against_brute_force "
     cmd += f"--gin_config_file={config_file} --top_k_method={algorithm}  --inference_from_ckpt={checkpoint} --master_port=12346"
@@ -100,17 +107,23 @@ def run_eval(dataset: str, algorithm: str, batch_size: int):
     cmd = get_cmd(
         config_file=configs[dataset],
         checkpoint=checkpoints[dataset],
-        batch_size=batch_size, algorithm=algorithm,
+        batch_size=batch_size,
+        algorithm=algorithm,
         limit_eval_to_first_n=limit_eval_to_first_n[dataset],
         eval_dtype="bf16",
     )
     print(cmd)
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
     output, error = p.communicate()
     result = None
     if p.returncode == 0:
         lines = output.splitlines()
-        result = [lines[-2].decode('utf8').replace("INFO:root:", ""), lines[-1].decode('utf8').replace("INFO:root:", "")]
+        result = [
+            lines[-2].decode("utf8").replace("INFO:root:", ""),
+            lines[-1].decode("utf8").replace("INFO:root:", ""),
+        ]
     else:
         print(p.returncode, output, error)
     return result
@@ -127,8 +140,8 @@ def eval(dataset: str, batch_size: int) -> List[str]:
 
 
 if __name__ == "__main__":
-    #dataset = "amzn-books"
-    #dataset = "ml-1m"
+    # dataset = "amzn-books"
+    # dataset = "ml-1m"
     dataset = "ml-20m"
     batch_size = 32
     result = eval(dataset=dataset, batch_size=batch_size)

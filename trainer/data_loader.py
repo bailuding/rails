@@ -21,6 +21,7 @@ import gin
 
 import torch
 
+
 @gin.configurable
 def create_data_loader(
     dataset: torch.utils.data.Dataset,
@@ -31,7 +32,10 @@ def create_data_loader(
     prefetch_factor: int = 128,
     num_workers: int = os.cpu_count(),
     drop_last: bool = False,
-) -> Tuple[Optional[torch.utils.data.distributed.DistributedSampler], torch.utils.data.DataLoader]:
+) -> Tuple[
+    Optional[torch.utils.data.distributed.DistributedSampler],
+    torch.utils.data.DataLoader,
+]:
     if shuffle:
         sampler = torch.utils.data.distributed.DistributedSampler(
             dataset,

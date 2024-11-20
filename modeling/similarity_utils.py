@@ -34,7 +34,7 @@ from rails.similarities.mol.item_embeddings_fns import RecoMoLItemEmbeddingsFn
 def init_mlp_xavier_weights_zero_bias(m) -> None:
     if isinstance(m, torch.nn.Linear):
         torch.nn.init.xavier_uniform(m.weight)
-        if getattr(m, 'bias', None) is not None:
+        if getattr(m, "bias", None) is not None:
             m.bias.data.fill_(0.0)
 
 
@@ -84,21 +84,34 @@ def create_mol_interaction_module(
             query_dot_product_groups=query_dot_product_groups,
             dot_product_dimension=dot_product_dimension,
             dot_product_l2_norm=dot_product_l2_norm,
-            proj_fn=lambda input_dim, output_dim: torch.nn.Sequential(
-                torch.nn.Dropout(p=query_dropout_rate),
-                GeGLU(in_features=input_dim, out_features=query_hidden_dim,) if query_nonlinearity == "geglu"
-                else SwiGLU(in_features=input_dim, out_features=query_hidden_dim,),
-                torch.nn.Linear(
-                    in_features=query_hidden_dim,
-                    out_features=output_dim,
-                ),
-            ) if query_hidden_dim > 0 else torch.nn.Sequential(
-                torch.nn.Dropout(p=query_dropout_rate),
-                torch.nn.Linear(
-                    in_features=input_dim,
-                    out_features=output_dim,
-                ),
-            ).apply(init_mlp_xavier_weights_zero_bias),
+            proj_fn=lambda input_dim, output_dim: (
+                torch.nn.Sequential(
+                    torch.nn.Dropout(p=query_dropout_rate),
+                    (
+                        GeGLU(
+                            in_features=input_dim,
+                            out_features=query_hidden_dim,
+                        )
+                        if query_nonlinearity == "geglu"
+                        else SwiGLU(
+                            in_features=input_dim,
+                            out_features=query_hidden_dim,
+                        )
+                    ),
+                    torch.nn.Linear(
+                        in_features=query_hidden_dim,
+                        out_features=output_dim,
+                    ),
+                )
+                if query_hidden_dim > 0
+                else torch.nn.Sequential(
+                    torch.nn.Dropout(p=query_dropout_rate),
+                    torch.nn.Linear(
+                        in_features=input_dim,
+                        out_features=output_dim,
+                    ),
+                ).apply(init_mlp_xavier_weights_zero_bias)
+            ),
             uid_embedding_hash_sizes=uid_embedding_hash_sizes or [],
             uid_dropout_rate=uid_dropout_rate,
             uid_embedding_level_dropout=uid_embedding_level_dropout,
@@ -109,69 +122,93 @@ def create_mol_interaction_module(
             item_dot_product_groups=item_dot_product_groups,
             dot_product_dimension=dot_product_dimension,
             dot_product_l2_norm=dot_product_l2_norm,
-            proj_fn=lambda input_dim, output_dim: torch.nn.Sequential(
-                torch.nn.Dropout(p=item_dropout_rate),
-                GeGLU(in_features=input_dim, out_features=item_hidden_dim,) if item_nonlinearity == "geglu"
-                else SwiGLU(in_features=input_dim, out_features=item_hidden_dim),
+            proj_fn=lambda input_dim, output_dim: (
+                torch.nn.Sequential(
+                    torch.nn.Dropout(p=item_dropout_rate),
+                    (
+                        GeGLU(
+                            in_features=input_dim,
+                            out_features=item_hidden_dim,
+                        )
+                        if item_nonlinearity == "geglu"
+                        else SwiGLU(in_features=input_dim, out_features=item_hidden_dim)
+                    ),
+                    torch.nn.Linear(
+                        in_features=item_hidden_dim,
+                        out_features=output_dim,
+                    ),
+                ).apply(init_mlp_xavier_weights_zero_bias)
+                if item_hidden_dim > 0
+                else torch.nn.Sequential(
+                    torch.nn.Dropout(p=item_dropout_rate),
+                    torch.nn.Linear(
+                        in_features=input_dim,
+                        out_features=output_dim,
+                    ),
+                ).apply(init_mlp_xavier_weights_zero_bias)
+            ),
+            eps=eps,
+        ),
+        item_proj_fn=None,  # to be deprecated.
+        gating_query_only_partial_fn=lambda input_dim, output_dim: (
+            torch.nn.Sequential(
                 torch.nn.Linear(
-                    in_features=item_hidden_dim,
+                    in_features=input_dim,
+                    out_features=gating_query_hidden_dim,
+                ),
+                torch.nn.SiLU(),
+                torch.nn.Linear(
+                    in_features=gating_query_hidden_dim,
+                    out_features=output_dim,
+                    bias=False,
+                ),
+            ).apply(init_mlp_xavier_weights_zero_bias)
+            if gating_query_fn
+            else None
+        ),
+        gating_item_only_partial_fn=lambda input_dim, output_dim: (
+            torch.nn.Sequential(
+                torch.nn.Dropout(p=gating_item_dropout_rate),
+                torch.nn.Linear(
+                    in_features=input_dim,
+                    out_features=gating_item_hidden_dim,
+                ),
+                torch.nn.SiLU(),
+                torch.nn.Linear(
+                    in_features=gating_item_hidden_dim,
+                    out_features=output_dim,
+                    bias=False,
+                ),
+            ).apply(init_mlp_xavier_weights_zero_bias)
+            if gating_item_fn
+            else None
+        ),
+        gating_qi_partial_fn=lambda input_dim, output_dim: (
+            torch.nn.Sequential(
+                torch.nn.Dropout(p=gating_qi_dropout_rate),
+                torch.nn.Linear(
+                    in_features=input_dim,
+                    out_features=gating_qi_hidden_dim,
+                ),
+                torch.nn.SiLU(),
+                torch.nn.Linear(
+                    in_features=gating_qi_hidden_dim,
                     out_features=output_dim,
                 ),
-            ).apply(init_mlp_xavier_weights_zero_bias) if item_hidden_dim > 0 else torch.nn.Sequential(
-                torch.nn.Dropout(p=item_dropout_rate),
+            ).apply(init_mlp_xavier_weights_zero_bias)
+            if gating_qi_hidden_dim > 0
+            else torch.nn.Sequential(
+                torch.nn.Dropout(p=gating_qi_dropout_rate),
                 torch.nn.Linear(
                     in_features=input_dim,
                     out_features=output_dim,
                 ),
-            ).apply(init_mlp_xavier_weights_zero_bias),
-            eps=eps,
+            ).apply(init_mlp_xavier_weights_zero_bias)
         ),
-        item_proj_fn=None,  # to be deprecated.
-        gating_query_only_partial_fn=lambda input_dim, output_dim: torch.nn.Sequential(
-            torch.nn.Linear(
-                in_features=input_dim,
-                out_features=gating_query_hidden_dim,
-            ),
-            torch.nn.SiLU(),
-            torch.nn.Linear(
-                in_features=gating_query_hidden_dim,
-                out_features=output_dim,
-                bias=False,
-            ),
-        ).apply(init_mlp_xavier_weights_zero_bias) if gating_query_fn else None,
-        gating_item_only_partial_fn=lambda input_dim, output_dim: torch.nn.Sequential(
-            torch.nn.Dropout(p=gating_item_dropout_rate),
-            torch.nn.Linear(
-                in_features=input_dim,
-                out_features=gating_item_hidden_dim,
-            ),
-            torch.nn.SiLU(),
-            torch.nn.Linear(
-                in_features=gating_item_hidden_dim,
-                out_features=output_dim,
-                bias=False,
-            ),
-        ).apply(init_mlp_xavier_weights_zero_bias) if gating_item_fn else None,
-        gating_qi_partial_fn=lambda input_dim, output_dim: torch.nn.Sequential(
-            torch.nn.Dropout(p=gating_qi_dropout_rate),
-            torch.nn.Linear(
-                in_features=input_dim,
-                out_features=gating_qi_hidden_dim,
-            ),
-            torch.nn.SiLU(),
-            torch.nn.Linear(
-                in_features=gating_qi_hidden_dim,
-                out_features=output_dim,
-            ),
-        ).apply(init_mlp_xavier_weights_zero_bias) if gating_qi_hidden_dim > 0 else torch.nn.Sequential(
-            torch.nn.Dropout(p=gating_qi_dropout_rate),
-            torch.nn.Linear(
-                in_features=input_dim,
-                out_features=output_dim,
-            ),
-        ).apply(init_mlp_xavier_weights_zero_bias),
         gating_combination_type=gating_combination_type,
-        gating_normalization_fn=lambda _: SoftmaxDropoutCombiner(dropout_rate=softmax_dropout_rate, eps=1e-6),
+        gating_normalization_fn=lambda _: SoftmaxDropoutCombiner(
+            dropout_rate=softmax_dropout_rate, eps=1e-6
+        ),
         eps=eps,
         autocast_bf16=bf16_training,
     )
@@ -179,14 +216,28 @@ def create_mol_interaction_module(
         f"MoL-{query_dot_product_groups}x{item_dot_product_groups}x{dot_product_dimension}"
         + f"-t{temperature}-d{softmax_dropout_rate}"
         + f"{'-l2' if dot_product_l2_norm else ''}"
-        + (f"-q{query_hidden_dim}d{query_dropout_rate}{query_nonlinearity}" if query_hidden_dim > 0 else f"-cd{query_dropout_rate}")
-        + (f"-{item_hidden_dim}d{item_dropout_rate}{item_nonlinearity}" if item_hidden_dim > 0 else f"-id{item_dropout_rate}")
+        + (
+            f"-q{query_hidden_dim}d{query_dropout_rate}{query_nonlinearity}"
+            if query_hidden_dim > 0
+            else f"-cd{query_dropout_rate}"
+        )
+        + (
+            f"-{item_hidden_dim}d{item_dropout_rate}{item_nonlinearity}"
+            if item_hidden_dim > 0
+            else f"-id{item_dropout_rate}"
+        )
         + (f"-gq{gating_query_hidden_dim}" if gating_query_fn else "")
-        + (f"-gi{gating_item_hidden_dim}d{gating_item_dropout_rate}" if gating_item_fn else "")
+        + (
+            f"-gi{gating_item_hidden_dim}d{gating_item_dropout_rate}"
+            if gating_item_fn
+            else ""
+        )
         + f"-gqi{gating_qi_hidden_dim}d{gating_qi_dropout_rate}-x-{gating_combination_type}"
     )
     if uid_embedding_hash_sizes is not None:
-        interaction_module_debug_str += f"-uids{'-'.join([str(x) for x in uid_embedding_hash_sizes])}"
+        interaction_module_debug_str += (
+            f"-uids{'-'.join([str(x) for x in uid_embedding_hash_sizes])}"
+        )
         if uid_dropout_rate > 0.0:
             interaction_module_debug_str += f"d{uid_dropout_rate}"
         if uid_embedding_level_dropout:
@@ -206,10 +257,12 @@ def get_similarity_function(
         interaction_module = DotProductSimilarity()
         interaction_module_debug_str = "DotProduct"
     elif module_type == "MoL":
-        interaction_module, interaction_module_debug_str = create_mol_interaction_module(
-            query_embedding_dim=query_embedding_dim,
-            item_embedding_dim=item_embedding_dim,
-            bf16_training=bf16_training,
+        interaction_module, interaction_module_debug_str = (
+            create_mol_interaction_module(
+                query_embedding_dim=query_embedding_dim,
+                item_embedding_dim=item_embedding_dim,
+                bf16_training=bf16_training,
+            )
         )
     else:
         raise ValueError(f"Unknown interaction_module_type {module_type}")
