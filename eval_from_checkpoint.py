@@ -97,6 +97,7 @@ flags.DEFINE_integer("limit_eval_to_first_n", 0, "Limit eval to first N items.")
 flags.DEFINE_integer("eval_batch_size", 64, "Batch size for evals.")
 flags.DEFINE_boolean("include_eval_time", False, "Please set this to False for strict accuracy checks.")
 flags.DEFINE_string("eval_dtype", "", "If non-empty, run eval in this dtype.")
+flags.DEFINE_boolean("eval_against_brute_force", False, "If true, eval against brute force.")
 
 
 FLAGS = flags.FLAGS
@@ -141,7 +142,9 @@ def train_fn(
     limit_eval_to_first_n: int,
     include_eval_time: bool,
     eval_dtype: str,
+    eval_against_brute_force: Optional[bool] = None,
     dataset_name: str = "ml-20m",
+    custom_date_str: str = "",  # not used
     max_sequence_length: int = 200,
     local_batch_size: int = 128,
     eval_batch_size: int = 128,
@@ -181,6 +184,10 @@ def train_fn(
 
     if eval_dtype == "bf16":
         logging.info("Enabling eval in bf16 to speed up.")
+
+    if eval_against_brute_force is None:
+        eval_against_brute_force = include_eval_time
+    logging.info(f"Eval against brute force set to {eval_against_brute_force}.")
 
     torch.backends.cuda.matmul.allow_tf32 = enable_tf32
     torch.backends.cudnn.allow_tf32 = enable_tf32
@@ -350,6 +357,20 @@ def train_fn(
         eval_dict_all = None
         eval_start_time = time.time()
         float_dtype = torch.bfloat16 if main_module_bf16 or eval_bf16 or eval_dtype == "bf16" else None
+        if eval_against_brute_force:
+            bf_eval_state = get_eval_state(
+                model=model.module,
+                all_item_ids=dataset.all_item_ids,
+                negatives_sampler=negatives_sampler,
+                top_k_module_fn=lambda item_embeddings, item_ids: get_top_k_module(
+                    top_k_method="MoLBruteForceTopK",
+                    model=model.module,
+                    item_embeddings=item_embeddings,
+                    item_ids=item_ids,
+                ),
+                device=device, 
+                float_dtype=float_dtype,
+            )
         eval_state = get_eval_state(
             model=model.module,
             all_item_ids=dataset.all_item_ids,
@@ -365,13 +386,29 @@ def train_fn(
         )
         for eval_iter, row in enumerate(iter(test_data_loader)):
             seq_features, target_ids, target_ratings = movielens_seq_features_from_row(row, device=device, max_output_length=gr_output_length + 1)
-            eval_dict = eval_metrics_v2_from_tensors(
-                eval_state, model.module, seq_features, target_ids=target_ids, target_ratings=target_ratings,
-                user_max_batch_size=eval_user_max_batch_size,
-                include_full_matrices=False,
-                include_eval_time=include_eval_time,
-                dtype=float_dtype,
-            )
+
+            if eval_against_brute_force:
+                # eval against brute-force based ground truth.
+                bf_eval_top_k_ids = eval_metrics_v2_from_tensors(
+                    bf_eval_state, model.module, seq_features, target_ids=target_ids, target_ratings=target_ratings,
+                    user_max_batch_size=eval_user_max_batch_size,
+                    include_eval_time=False,
+                    include_eval_top_k_ids=True,
+                    dtype=float_dtype,
+                )["eval_top_k_ids"][:, 0:1]
+                eval_dict = eval_metrics_v2_from_tensors(
+                    eval_state, model.module, seq_features, target_ids=bf_eval_top_k_ids, target_ratings=target_ratings,
+                    user_max_batch_size=eval_user_max_batch_size,
+                    include_eval_time=include_eval_time,
+                    dtype=float_dtype,
+                )
+            else:
+                eval_dict = eval_metrics_v2_from_tensors(
+                    eval_state, model.module, seq_features, target_ids=target_ids, target_ratings=target_ratings,
+                    user_max_batch_size=eval_user_max_batch_size,
+                    include_eval_time=include_eval_time,
+                    dtype=float_dtype,
+                )
 
             if eval_dict_all is None:
                 eval_dict_all = {}
@@ -433,6 +470,7 @@ def mp_train_fn(
     eval_batch_size: int,
     include_eval_time: bool,
     eval_dtype: str,
+    eval_against_brute_force: bool,
 ) -> None:
     if gin_config_file is not None:
         # Hack as absl doesn't support flag parsing inside multiprocessing.
@@ -448,6 +486,7 @@ def mp_train_fn(
         eval_user_max_batch_size=eval_batch_size,
         include_eval_time=include_eval_time,
         eval_dtype=eval_dtype,
+        eval_against_brute_force=eval_against_brute_force,
     )
 
 def main(argv):
@@ -466,6 +505,7 @@ def main(argv):
                 FLAGS.eval_batch_size,
                 FLAGS.include_eval_time,
                 FLAGS.eval_dtype,
+                FLAGS.eval_against_brute_force,
              ),
              nprocs=world_size,
              join=True)
