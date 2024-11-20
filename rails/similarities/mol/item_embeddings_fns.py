@@ -163,8 +163,8 @@ class RecoMoLItemEmbeddingsFn(MoLEmbeddingsFn):
             ).
         """
         split_item_embeddings = self._item_emb_proj_module(input_embeddings).reshape(
-            input_embeddings.size()[:-1] + 
-            (
+            input_embeddings.size()[:-1]
+            + (
                 self._item_emb_based_dot_product_groups,
                 self._dot_product_dimension,
             )

@@ -29,5 +29,5 @@ def truncated_normal(x: torch.Tensor, mean: float, std: float) -> torch.Tensor:
 def init_mlp_xavier_weights_zero_bias(m) -> None:
     if isinstance(m, torch.nn.Linear):
         torch.nn.init.xavier_uniform(m.weight)
-        if getattr(m, 'bias', None) is not None:
+        if getattr(m, "bias", None) is not None:
             m.bias.data.fill_(0.0)

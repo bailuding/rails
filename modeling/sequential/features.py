@@ -47,18 +47,37 @@ def movielens_seq_features_from_row(
     user_ids = row["user_id"].to(device)  # (B,)
     if max_output_length > 0:
         B = historical_lengths.size(0)
-        historical_ids = torch.cat([
-            historical_ids,
-            torch.zeros((B, max_output_length), dtype=historical_ids.dtype, device=device),
-        ], dim=1)
-        historical_ratings = torch.cat([
-            historical_ratings,
-            torch.zeros((B, max_output_length), dtype=historical_ratings.dtype, device=device),
-        ], dim=1)
-        historical_timestamps = torch.cat([
-            historical_timestamps,
-            torch.zeros((B, max_output_length), dtype=historical_timestamps.dtype, device=device),
-        ], dim=1)
+        historical_ids = torch.cat(
+            [
+                historical_ids,
+                torch.zeros(
+                    (B, max_output_length), dtype=historical_ids.dtype, device=device
+                ),
+            ],
+            dim=1,
+        )
+        historical_ratings = torch.cat(
+            [
+                historical_ratings,
+                torch.zeros(
+                    (B, max_output_length),
+                    dtype=historical_ratings.dtype,
+                    device=device,
+                ),
+            ],
+            dim=1,
+        )
+        historical_timestamps = torch.cat(
+            [
+                historical_timestamps,
+                torch.zeros(
+                    (B, max_output_length),
+                    dtype=historical_timestamps.dtype,
+                    device=device,
+                ),
+            ],
+            dim=1,
+        )
         historical_timestamps.scatter_(
             dim=1,
             index=historical_lengths.view(-1, 1),

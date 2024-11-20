@@ -631,7 +631,11 @@ class HSTU(SequentialEncoderWithLearnedSimilarityModule):
 
     def reset_params(self):
         for name, params in self.named_parameters():
-            if ("_hstu" in name) or ("_embedding_module" in name) or ("_output_postproc" in name):
+            if (
+                ("_hstu" in name)
+                or ("_embedding_module" in name)
+                or ("_output_postproc" in name)
+            ):
                 if self._verbose:
                     print(f"Skipping init for {name}")
                 continue

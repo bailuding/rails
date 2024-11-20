@@ -87,18 +87,22 @@ def eval_metrics_v2_from_tensors(
     user_max_batch_size: Optional[int] = None,
     dtype: Optional[torch.dtype] = None,
     include_eval_time: bool = False,
+    include_eval_top_k_ids: bool = False,
 ) -> Dict[str, torch.Tensor]:
     """
     Args:
         eval_negatives_ids: Optional[Tensor]. If not present, defaults to eval over
             the entire corpus (`num_items`) excluding all the items that users have
             seen in the past (historical_ids, target_ids). This is consistent with
-            papers like SASRec and TDM but may not be fair in practice as retrieval
-            modules don't have access to read state during the initial fetch stage.
-        item_max_batch_size: int. maximum number of items (*not* users - i.e., M/R
-            not B) to eval per batch.
+            papers like SASRec, HSTU, and TDM but may not be fair in practice as
+            retrieval modules don't typically have access to read state during the
+            initial retrieval stage.
+        item_max_batch_size: int. maximum number of items to eval per batch.
         filter_invalid_ids: bool. If true, filters seen ids by default.
-        include_eval_time: include_eval_time
+        include_eval_time: bool. If true, include eval time in the output.
+        include_eval_top_k_ids: bool. If true, include top k ids from the algorithm
+            in the output.
+
     Returns:
         keyed metric -> list of values for each example.
     """
@@ -239,6 +243,8 @@ def eval_metrics_v2_from_tensors(
     }
     if include_eval_time:
         output["eval_time"] = eval_time_all
+    if include_eval_top_k_ids:
+        output["eval_top_k_ids"] = eval_top_k_ids
 
     if target_ratings is not None:
         target_ratings = target_ratings.squeeze(1)  # [B]

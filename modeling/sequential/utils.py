@@ -16,6 +16,7 @@
 
 import torch
 
+
 def batch_gather_embeddings(
     rowwise_indices: torch.Tensor,
     embeddings: torch.Tensor,

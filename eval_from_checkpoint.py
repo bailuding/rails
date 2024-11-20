@@ -54,9 +54,10 @@ import itertools
 
 from datetime import date
 import os
+
 # Hide tensorflow debug messages
 # https://stackoverflow.com/questions/65298241/what-does-this-tensorflow-message-mean-any-side-effect-was-the-installation-su
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1' 
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
 import sys
 import time
 import gin
@@ -74,30 +75,51 @@ from torch.utils.tensorboard import SummaryWriter
 from data.reco_dataset import get_reco_dataset
 from data.eval import _avg, get_eval_state, eval_metrics_v2_from_tensors
 from indexing.utils_rails import get_top_k_module
-from modeling.sequential.autoregressive_losses import InBatchNegativesSampler, LocalNegativesSampler
-from modeling.sequential.embedding_modules import EmbeddingModule, CategoricalEmbeddingModule, LocalEmbeddingModule
+from modeling.sequential.autoregressive_losses import (
+    InBatchNegativesSampler,
+    LocalNegativesSampler,
+)
+from modeling.sequential.embedding_modules import (
+    EmbeddingModule,
+    CategoricalEmbeddingModule,
+    LocalEmbeddingModule,
+)
 from modeling.sequential.encoder_utils import get_sequential_encoder
-from modeling.sequential.input_features_preprocessors import InputFeaturesPreprocessorModule, LearnablePositionalEmbeddingInputFeaturesPreprocessor
-from modeling.sequential.output_postprocessors import L2NormEmbeddingPostprocessor, LayerNormEmbeddingPostprocessor
+from modeling.sequential.input_features_preprocessors import (
+    InputFeaturesPreprocessorModule,
+    LearnablePositionalEmbeddingInputFeaturesPreprocessor,
+)
+from modeling.sequential.output_postprocessors import (
+    L2NormEmbeddingPostprocessor,
+    LayerNormEmbeddingPostprocessor,
+)
 from modeling.sequential.sasrec import SASRec
 from modeling.sequential.hstu import HSTU
-from modeling.sequential.features import movielens_seq_features_from_row, SequentialFeatures
+from modeling.sequential.features import (
+    movielens_seq_features_from_row,
+    SequentialFeatures,
+)
 from modeling.similarity_utils import get_similarity_function
 from trainer.data_loader import create_data_loader
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-flags.DEFINE_string(
-    "gin_config_file", None, "List of paths to the config file.")
+flags.DEFINE_string("gin_config_file", None, "List of paths to the config file.")
 
 flags.DEFINE_integer("master_port", 12355, "Master port.")
-flags.DEFINE_string("inference_from_ckpt", None, "Inference using loaded checkpoint, then exit if set.")
+flags.DEFINE_string(
+    "inference_from_ckpt", None, "Inference using loaded checkpoint, then exit if set."
+)
 flags.DEFINE_string("top_k_method", None, "Top-K method.")
 flags.DEFINE_integer("limit_eval_to_first_n", 0, "Limit eval to first N items.")
 flags.DEFINE_integer("eval_batch_size", 64, "Batch size for evals.")
-flags.DEFINE_boolean("include_eval_time", False, "Please set this to False for strict accuracy checks.")
+flags.DEFINE_boolean(
+    "include_eval_time", False, "Please set this to False for strict accuracy checks."
+)
 flags.DEFINE_string("eval_dtype", "", "If non-empty, run eval in this dtype.")
-flags.DEFINE_boolean("eval_against_brute_force", False, "If true, eval against brute force.")
+flags.DEFINE_boolean(
+    "eval_against_brute_force", False, "If true, eval against brute force."
+)
 
 
 FLAGS = flags.FLAGS
@@ -105,9 +127,10 @@ FLAGS = flags.FLAGS
 
 def is_port_in_use(port: int) -> bool:
     import socket
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
-            s.bind(('localhost', port))
+            s.bind(("localhost", port))
             return False
         except socket.error:
             return True
@@ -119,10 +142,12 @@ def setup(rank: int, world_size: int, master_port: int) -> None:
     while is_port_in_use(current_port):
         current_port += 1
         if current_port > master_port + 20:  # Avoid infinite loop
-            raise RuntimeError(f"Could not find available port after trying {master_port} through {current_port-1}")
-    
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = str(current_port)
+            raise RuntimeError(
+                f"Could not find available port after trying {master_port} through {current_port-1}"
+            )
+
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = str(current_port)
 
     # initialize the process group
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
@@ -234,12 +259,16 @@ def train_fn(
     )
 
     if main_module == "HSTU":
-        assert user_embedding_norm == "l2_norm" or user_embedding_norm == "layer_norm", f"Not implemented for {user_embedding_norm}"
+        assert (
+            user_embedding_norm == "l2_norm" or user_embedding_norm == "layer_norm"
+        ), f"Not implemented for {user_embedding_norm}"
         output_postproc_module = (
             L2NormEmbeddingPostprocessor(
                 embedding_dim=item_embedding_dim,
                 eps=1e-6,
-            ) if user_embedding_norm == "l2_norm" else LayerNormEmbeddingPostprocessor(
+            )
+            if user_embedding_norm == "l2_norm"
+            else LayerNormEmbeddingPostprocessor(
                 embedding_dim=item_embedding_dim,
                 eps=1e-6,
             )
@@ -270,7 +299,9 @@ def train_fn(
             l2_norm_eps=l2_norm_eps,
             dedup_embeddings=True,
         )
-        sampling_debug_str = f"in-batch{f'-l2-eps{l2_norm_eps}' if item_l2_norm else ''}-dedup"
+        sampling_debug_str = (
+            f"in-batch{f'-l2-eps{l2_norm_eps}' if item_l2_norm else ''}-dedup"
+        )
     elif sampling_strategy == "local":
         negatives_sampler = LocalNegativesSampler(
             num_items=dataset.max_item_id,
@@ -299,44 +330,42 @@ def train_fn(
     ) -> Dict:
         """
         Rename keys in the state dict according to the provided mapping.
-        
+
         Args:
             state_dict: Original state dict
             rename_map: Dictionary mapping old keys to new keys
             strict: If True, raises error when encountering unmapped keys
-            
+
         Returns:
             Dict: New state dict with renamed keys
         """
         new_state_dict = {}
         unmapped_keys = []
-        
+
         for old_key, value in state_dict.items():
             print(f"old_key: {old_key}")
             new_key = old_key
-            
+
             # Check if any pattern in the rename map matches the current key
             for old_pattern, new_pattern in rename_map.items():
                 if old_pattern in old_key:
                     new_key = old_key.replace(old_pattern, new_pattern)
                     print(f"Renaming state dict: {old_key} -> {new_key}")
                     break
-            
+
             if old_key == new_key and strict:
                 unmapped_keys.append(old_key)
-            
+
             new_state_dict[new_key] = value
-            
+
         if unmapped_keys and strict:
-            raise ValueError(
-                f"The following keys were not mapped: {unmapped_keys}"
-            )
-            
+            raise ValueError(f"The following keys were not mapped: {unmapped_keys}")
+
         return new_state_dict
-    
+
     checkpoint = torch.load(inference_from_ckpt)
-    checkpoint['model_state_dict'] = _rename_state_dict(
-        checkpoint['model_state_dict'],
+    checkpoint["model_state_dict"] = _rename_state_dict(
+        checkpoint["model_state_dict"],
         rename_map={
             "module._ndp_module._item_proj_module.1.weight": "module._ndp_module._item_embeddings_fn._item_emb_proj_module.1.weight",
             "module._ndp_module._item_proj_module.1.bias": "module._ndp_module._item_embeddings_fn._item_emb_proj_module.1.bias",
@@ -344,9 +373,11 @@ def train_fn(
         strict=False,
     )
 
-    model.load_state_dict(checkpoint['model_state_dict'])
-    epoch = checkpoint['epoch']
-    logging.info(f"Restored model and optimizer state from epoch {epoch}'s ckpt: {inference_from_ckpt}. Setting cur_epoch to {epoch}")
+    model.load_state_dict(checkpoint["model_state_dict"])
+    epoch = checkpoint["epoch"]
+    logging.info(
+        f"Restored model and optimizer state from epoch {epoch}'s ckpt: {inference_from_ckpt}. Setting cur_epoch to {epoch}"
+    )
 
     last_training_time = time.time()
 
@@ -356,7 +387,11 @@ def train_fn(
         # eval per epoch
         eval_dict_all = None
         eval_start_time = time.time()
-        float_dtype = torch.bfloat16 if main_module_bf16 or eval_bf16 or eval_dtype == "bf16" else None
+        float_dtype = (
+            torch.bfloat16
+            if main_module_bf16 or eval_bf16 or eval_dtype == "bf16"
+            else None
+        )
         if eval_against_brute_force:
             bf_eval_state = get_eval_state(
                 model=model.module,
@@ -368,7 +403,7 @@ def train_fn(
                     item_embeddings=item_embeddings,
                     item_ids=item_ids,
                 ),
-                device=device, 
+                device=device,
                 float_dtype=float_dtype,
             )
         eval_state = get_eval_state(
@@ -381,30 +416,44 @@ def train_fn(
                 item_embeddings=item_embeddings,
                 item_ids=item_ids,
             ),
-            device=device, 
+            device=device,
             float_dtype=float_dtype,
         )
         for eval_iter, row in enumerate(iter(test_data_loader)):
-            seq_features, target_ids, target_ratings = movielens_seq_features_from_row(row, device=device, max_output_length=gr_output_length + 1)
+            seq_features, target_ids, target_ratings = movielens_seq_features_from_row(
+                row, device=device, max_output_length=gr_output_length + 1
+            )
 
             if eval_against_brute_force:
                 # eval against brute-force based ground truth.
                 bf_eval_top_k_ids = eval_metrics_v2_from_tensors(
-                    bf_eval_state, model.module, seq_features, target_ids=target_ids, target_ratings=target_ratings,
+                    bf_eval_state,
+                    model.module,
+                    seq_features,
+                    target_ids=target_ids,
+                    target_ratings=target_ratings,
                     user_max_batch_size=eval_user_max_batch_size,
                     include_eval_time=False,
                     include_eval_top_k_ids=True,
                     dtype=float_dtype,
                 )["eval_top_k_ids"][:, 0:1]
                 eval_dict = eval_metrics_v2_from_tensors(
-                    eval_state, model.module, seq_features, target_ids=bf_eval_top_k_ids, target_ratings=target_ratings,
+                    eval_state,
+                    model.module,
+                    seq_features,
+                    target_ids=bf_eval_top_k_ids,
+                    target_ratings=target_ratings,
                     user_max_batch_size=eval_user_max_batch_size,
                     include_eval_time=include_eval_time,
                     dtype=float_dtype,
                 )
             else:
                 eval_dict = eval_metrics_v2_from_tensors(
-                    eval_state, model.module, seq_features, target_ids=target_ids, target_ratings=target_ratings,
+                    eval_state,
+                    model.module,
+                    seq_features,
+                    target_ids=target_ids,
+                    target_ratings=target_ratings,
                     user_max_batch_size=eval_user_max_batch_size,
                     include_eval_time=include_eval_time,
                     dtype=float_dtype,
@@ -419,7 +468,10 @@ def train_fn(
                     eval_dict_all[k] = eval_dict_all[k] + [v]
             del eval_dict
 
-            if limit_eval_to_first_n > 0 and (eval_iter + 1) * eval_batch_size >= limit_eval_to_first_n:
+            if (
+                limit_eval_to_first_n > 0
+                and (eval_iter + 1) * eval_batch_size >= limit_eval_to_first_n
+            ):
                 break
 
         for k, v in eval_dict_all.items():
@@ -439,19 +491,25 @@ def train_fn(
         hr_100 = _avg(eval_dict_all["hr@100"], world_size=world_size)
         mrr = _avg(eval_dict_all["mrr"], world_size=world_size)
 
-        logging.info(f"eval @ epoch {epoch} ({eval_iter + 1} iters, {(eval_iter + 1) * eval_batch_size} evaluated) in {time.time() - eval_start_time:.2f}s: "
-                     f"NDCG@1 {ndcg_1:.4f}, NDCG@5 {ndcg_5:.4f}, NDCG@10 {ndcg_10:.4f}, NDCG@50 {ndcg_50:.4f}, NDCG@100 {ndcg_100:.4f}, HR@1 {hr_1:.4f}, HR@5 {hr_5:.4f}, HR@10 {hr_10:.4f}, HR@50 {hr_50:.4f}, HR@100 {hr_100:.4f}, MRR {mrr:.4f}")
+        logging.info(
+            f"eval @ epoch {epoch} ({eval_iter + 1} iters, {(eval_iter + 1) * eval_batch_size} evaluated) in {time.time() - eval_start_time:.2f}s: "
+            f"NDCG@1 {ndcg_1:.4f}, NDCG@5 {ndcg_5:.4f}, NDCG@10 {ndcg_10:.4f}, NDCG@50 {ndcg_50:.4f}, NDCG@100 {ndcg_100:.4f}, HR@1 {hr_1:.4f}, HR@5 {hr_5:.4f}, HR@10 {hr_10:.4f}, HR@50 {hr_50:.4f}, HR@100 {hr_100:.4f}, MRR {mrr:.4f}"
+        )
 
         if include_eval_time:
             eval_time_avg_ms = 1000 * statistics.mean(eval_dict_all["eval_time"])
             eval_time_dev_ms = 1000 * statistics.stdev(eval_dict_all["eval_time"])
             eval_sample = len(eval_dict_all["eval_time"])
-            logging.info(f"EvalTimeAvgMs {eval_time_avg_ms:.2f}, EvalTimeDevMs {eval_time_dev_ms:.2f}, EvalSample { eval_sample }")
+            logging.info(
+                f"EvalTimeAvgMs {eval_time_avg_ms:.2f}, EvalTimeDevMs {eval_time_dev_ms:.2f}, EvalSample { eval_sample }"
+            )
 
         # CSV format
         if include_eval_time:
             logging.info("HR@1,HR@5,HR@10,HR@50,HR@100,BatchTimeMsAvg,BatchTimeMsDev")
-            logging.info(f"{hr_1},{hr_5},{hr_10},{hr_50},{hr_100},{eval_time_avg_ms:.3f},{eval_time_dev_ms:.3f}")
+            logging.info(
+                f"{hr_1},{hr_5},{hr_10},{hr_50},{hr_100},{eval_time_avg_ms:.3f},{eval_time_dev_ms:.3f}"
+            )
         else:
             logging.info("HR@1,HR@5,HR@10,HR@50,HR@100")
             logging.info(f"{hr_1},{hr_5},{hr_10},{hr_50},{hr_100}")
@@ -478,7 +536,9 @@ def mp_train_fn(
         gin.parse_config_file(gin_config_file)
 
     train_fn(
-        rank, world_size, master_port,
+        rank,
+        world_size,
+        master_port,
         inference_from_ckpt=inference_from_ckpt,
         top_k_method=top_k_method,
         limit_eval_to_first_n=limit_eval_to_first_n,
@@ -489,26 +549,29 @@ def mp_train_fn(
         eval_against_brute_force=eval_against_brute_force,
     )
 
+
 def main(argv):
     world_size = torch.cuda.device_count()
     assert world_size == 1
 
-    mp.set_start_method('forkserver')
-    mp.spawn(mp_train_fn,
-             args=(
-                world_size,
-                FLAGS.master_port,
-                FLAGS.gin_config_file,
-                FLAGS.inference_from_ckpt,
-                FLAGS.top_k_method,
-                FLAGS.limit_eval_to_first_n,
-                FLAGS.eval_batch_size,
-                FLAGS.include_eval_time,
-                FLAGS.eval_dtype,
-                FLAGS.eval_against_brute_force,
-             ),
-             nprocs=world_size,
-             join=True)
+    mp.set_start_method("forkserver")
+    mp.spawn(
+        mp_train_fn,
+        args=(
+            world_size,
+            FLAGS.master_port,
+            FLAGS.gin_config_file,
+            FLAGS.inference_from_ckpt,
+            FLAGS.top_k_method,
+            FLAGS.limit_eval_to_first_n,
+            FLAGS.eval_batch_size,
+            FLAGS.include_eval_time,
+            FLAGS.eval_dtype,
+            FLAGS.eval_against_brute_force,
+        ),
+        nprocs=world_size,
+        join=True,
+    )
 
 
 if __name__ == "__main__":
