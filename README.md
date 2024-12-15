@@ -1,6 +1,6 @@
 # Retrieval with Learned Similarities (RAILS)
 
-Repository for `Retrieval with Learned Similarities` (RAILS), http://arxiv.org/abs/2407.15462).
+Repository for `Retrieval with Learned Similarities` (RAILS), http://arxiv.org/abs/2407.15462.
 
 TL;DR: while modern retrieval systems have moved beyond simple inner products to more expressive learned similarities, we lack efficient ways to perform retrieval with these advanced methods (e.g., late interactions, arbitrary neural networks, learned index structures/generative retrieval, hybrid solutions, etc.). Our work closes this gap by providing a unifying perspective to neural retrieval. We establish [`Mixture-of-Logits (MoL)`](https://dl.acm.org/doi/10.1145/3580305.3599897) as a universal approximator of _all_ similarity functions, demonstrate that MoL's expressiveness can be realized empirically to achieve superior performance on _diverse, heterogeneous_ scenarios, including finetuning language models for question answering and sequential retrieval models in recommendation systems, and propose efficient techniques to retrieve the approximate top-$k$ results using MoL with tight error bounds. Given MoL’s impressive empirical performance gains of 20%-30% across Hit Rate@50-400 over hundreds of millions to billions of items (e.g., [Zhai et al., 2023](https://dl.acm.org/doi/10.1145/3580305.3599897), [Borisyuk et al., 2024](https://dl.acm.org/doi/10.1145/3627673.3680091)) and broad applicability across heterogeneous scenarios, our work provides strong theoretical and practical justifications for migrating web-scale vector databases away from dense retrieval and MIPS to Retrieval with Learned Similarities (RAILS) on GPUs.
 
@@ -80,10 +80,10 @@ You should be able to reproduce the following results (verified as of 07/22/2024
 
 ## References
 
-The code in this repository is intended for reproducing results reported in `Efficient Retrieval with Learned Similarities` (http://arxiv.org/abs/2407.15462). If you find the work or the code useful, please cite
+The code in this repository is intended for reproducing results reported in `Retrieval with Learned Similarities` (http://arxiv.org/abs/2407.15462). If you find the work or the code useful, please cite
 ```
 @misc{ding2024retrievallearnedsimilarities,
-      title={Efficient Retrieval with Learned Similarities}, 
+      title={Retrieval with Learned Similarities}, 
       author={Bailu Ding and Jiaqi Zhai},
       year={2024},
       eprint={2407.15462},
