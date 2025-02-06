@@ -80,7 +80,7 @@ You should be able to reproduce the following results (verified as of 07/22/2024
 
 ## References
 
-The code in this repository is intended for reproducing results reported in `Retrieval with Learned Similarities` (http://arxiv.org/abs/2407.15462) and WWW'25 Oral. If you find the work or the code useful, please cite
+The code in this repository is intended for reproducing results reported in `Retrieval with Learned Similarities` (http://arxiv.org/abs/2407.15462 and WWW'25 Oral). If you find the work or the code useful, please cite
 ```
 @misc{ding2024retrievallearnedsimilarities,
       title={Retrieval with Learned Similarities}, 
