@@ -80,16 +80,24 @@ You should be able to reproduce the following results (verified as of 07/22/2024
 
 ## References
 
-The code in this repository is intended for reproducing results reported in `Retrieval with Learned Similarities` (http://arxiv.org/abs/2407.15462 and WWW'25 Oral). If you find the work or the code useful, please cite
+The code in this repository is intended for reproducing results reported in `Retrieval with Learned Similarities` (http://arxiv.org/abs/2407.15462, WWW'25 Oral). If you find the work or the code useful, please cite
 ```
-@misc{ding2024retrievallearnedsimilarities,
-      title={Retrieval with Learned Similarities}, 
-      author={Bailu Ding and Jiaqi Zhai},
-      year={2024},
-      eprint={2407.15462},
-      archivePrefix={arXiv},
-      primaryClass={cs.IR},
-      url={https://arxiv.org/abs/2407.15462}, 
+@inproceedings{10.1145/3696410.3714822,
+author = {Ding, Bailu and Zhai, Jiaqi},
+title = {Retrieval with Learned Similarities},
+year = {2025},
+isbn = {9798400712746},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3696410.3714822},
+doi = {10.1145/3696410.3714822},
+abstract = {Retrieval plays a fundamental role in recommendation systems, search, and natural language processing (NLP) by efficiently finding relevant items from a large corpus given a query. Dot products have been widely used as the similarity function in such tasks, enabled by Maximum Inner Product Search (MIPS) algorithms for efficient retrieval. However, state-of-the-art retrieval algorithms have migrated to learned similarities. These advanced approaches encompass multiple query embeddings, complex neural networks, direct item ID decoding via beam search, and hybrid solutions. Unfortunately, we lack efficient solutions for retrieval in these state-of-the-art setups. Our work addresses this gap by investigating efficient retrieval techniques with expressive learned similarity functions. We establish Mixture-of-Logits (MoL) as a universal approximator of similarity functions, demonstrate that MoL's expressiveness can be realized empirically to achieve superior performance on diverse retrieval scenarios, and propose techniques to retrieve the approximate top-k results using MoL with tight error bounds. Through extensive experimentation, we show that MoL, enhanced by our proposed mutual information-based load balancing loss, sets new state-of-the-art results across heterogeneous scenarios, including sequential retrieval models in recommendation systems and finetuning language models for question answering; and our approximate top-k algorithms outperform baselines by up to 66\texttimes{} in latency while achieving >.99 recall rate compared to exact algorithms.},
+booktitle = {Proceedings of the ACM on Web Conference 2025},
+pages = {1626–1637},
+numpages = {12},
+keywords = {learned similarities, nearest neighbor search, question answering, recommendation systems, top-k retrieval, vector databases},
+location = {Sydney NSW, Australia},
+series = {WWW '25}
 }
 ```
 
